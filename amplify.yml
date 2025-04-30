@@ -1,20 +1,24 @@
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - npm install -g pnpm
-        - pnpm install --frozen-lockfile
-    build:
-      commands:
-        - pnpm run build
-  artifacts:
-    baseDirectory: out
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - node_modules/**/*
-      - .pnpm-store/**/*
+applications:
+  - appRoot: /   # root of the repo
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm install
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: build  # Adjust this if you're using a different build output folder
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
 
-# Do not include env.AMPLIFY_MONOREPO_APP_ROOT
+    backend:
+      phases:
+        preBuild:
+          commands:
+            - echo "No backend to build"  # Optional, if you don't have any backend code
