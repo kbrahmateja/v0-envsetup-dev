@@ -26,7 +26,7 @@ export default function Header() {
       <div className="container flex h-16 items-center justify-between pl-1 sm:pl-1 lg:pl-20">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold">EnvSetup.dev</span>
+            <span className="text-xl font-bold">EnvSetup.dev(Alpha)</span>
           </Link>
 
           {!isMobile && (

@@ -89,7 +89,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} EnvSetup.dev. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} (Brahmateja Kanchibhotla) - EnvSetup.dev. All rights reserved.</p>
         </div>
       </div>
     </footer>
