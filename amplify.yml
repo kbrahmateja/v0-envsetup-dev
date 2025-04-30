@@ -1,6 +1,6 @@
 version: 1
 applications:
-  - appRoot: /   # root of the repo
+  - appRoot: /
     frontend:
       phases:
         preBuild:
@@ -10,7 +10,7 @@ applications:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: build  # Adjust this if you're using a different build output folder
+        baseDirectory: build  # Adjust this if your build output is different
         files:
           - '**/*'
       cache:
@@ -21,4 +21,4 @@ applications:
       phases:
         preBuild:
           commands:
-            - echo "No backend to build"  # Optional, if you don't have any backend code
+            - echo "No backend to build"
