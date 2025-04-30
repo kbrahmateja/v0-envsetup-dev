@@ -7,9 +7,9 @@ frontend:
         - pnpm install --frozen-lockfile
     build:
       commands:
-        - pnpm run build
+        - pnpm run build  # This should trigger `next build && next export` internally
   artifacts:
-    baseDirectory: out  # Change to `.next` if using SSR (Next.js)
+    baseDirectory: out
     files:
       - '**/*'
   cache:
@@ -17,7 +17,6 @@ frontend:
       - node_modules/**/*
       - .pnpm-store/**/*
 
-# Optional: If using Amplify environment variables via SSM
+# Optional: If you're using SSM secrets, customize this
 env:
-  # Replace with your path if needed
   AMPLIFY_MONOREPO_APP_ROOT: envsetup
