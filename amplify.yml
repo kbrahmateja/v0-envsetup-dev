@@ -1,6 +1,6 @@
 version: 1
 applications:
-  - appRoot: /
+  - appRoot: .
     frontend:
       phases:
         preBuild:
@@ -10,15 +10,9 @@ applications:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: build  # Adjust this if your build output is different
+        baseDirectory: out
         files:
           - '**/*'
       cache:
         paths:
-          - node_modules/**/*
-
-    backend:
-      phases:
-        preBuild:
-          commands:
-            - echo "No backend to build"
+          - node_modules/**/* 
