@@ -9,9 +9,15 @@ frontend:
       commands:
         - pnpm run build
   artifacts:
-    baseDirectory: dist # Change this if your build output folder is different
+    baseDirectory: out  # Change to `.next` if using SSR (Next.js)
     files:
       - '**/*'
   cache:
     paths:
       - node_modules/**/*
+      - .pnpm-store/**/*
+
+# Optional: If using Amplify environment variables via SSM
+env:
+  # Replace with your path if needed
+  AMPLIFY_MONOREPO_APP_ROOT: envsetup
