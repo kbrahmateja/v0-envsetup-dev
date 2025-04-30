@@ -3,20 +3,17 @@ frontend:
   phases:
     preBuild:
       commands:
+        - cd envsetup
         - npm install -g pnpm
         - pnpm install --frozen-lockfile
     build:
       commands:
-        - pnpm run build  # This should trigger `next build && next export` internally
+        - pnpm run build
   artifacts:
-    baseDirectory: out
+    baseDirectory: envsetup/out
     files:
       - '**/*'
   cache:
     paths:
-      - node_modules/**/*
-      - .pnpm-store/**/*
-
-# Optional: If you're using SSM secrets, customize this
-env:
-  AMPLIFY_MONOREPO_APP_ROOT: envsetup
+      - envsetup/node_modules/**/*
+      - envsetup/.pnpm-store/**/*
