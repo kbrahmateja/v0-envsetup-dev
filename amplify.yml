@@ -3,17 +3,18 @@ frontend:
   phases:
     preBuild:
       commands:
-        - cd envsetup
         - npm install -g pnpm
         - pnpm install --frozen-lockfile
     build:
       commands:
         - pnpm run build
   artifacts:
-    baseDirectory: envsetup/out
+    baseDirectory: out
     files:
       - '**/*'
   cache:
     paths:
-      - envsetup/node_modules/**/*
-      - envsetup/.pnpm-store/**/*
+      - node_modules/**/*
+      - .pnpm-store/**/*
+
+# Do not include env.AMPLIFY_MONOREPO_APP_ROOT
