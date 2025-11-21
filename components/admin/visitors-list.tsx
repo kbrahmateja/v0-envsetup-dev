@@ -6,11 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export async function VisitorsList() {
   const sql = neon(process.env.DATABASE_URL!)
 
-  const visitors = await sql`
-    SELECT * FROM visitors
-    ORDER BY visited_at DESC
-    LIMIT 100
-  `
+  let visitors: any[] = []
+
+  try {
+    visitors = await sql`
+      SELECT * FROM visitors
+      ORDER BY visited_at DESC
+      LIMIT 100
+    `
+  } catch (error) {
+    console.error("Error fetching visitors list:", error)
+  }
 
   return (
     <Card>
@@ -18,30 +24,34 @@ export async function VisitorsList() {
         <CardTitle>Recent Visitors</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Page</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>IP Address</TableHead>
-              <TableHead>Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visitors.map((visitor) => (
-              <TableRow key={visitor.id}>
-                <TableCell className="font-medium max-w-xs truncate">{visitor.page_url}</TableCell>
-                <TableCell>
-                  {visitor.city}, {visitor.country}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{visitor.ip_address}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatDistanceToNow(new Date(visitor.visited_at), { addSuffix: true })}
-                </TableCell>
+        {visitors.length === 0 ? (
+          <div className="flex items-center justify-center h-40 text-muted-foreground">No visitors tracked yet</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Page</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>IP Address</TableHead>
+                <TableHead>Time</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {visitors.map((visitor) => (
+                <TableRow key={visitor.id}>
+                  <TableCell className="font-medium max-w-xs truncate">{visitor.page_url}</TableCell>
+                  <TableCell>
+                    {visitor.city}, {visitor.country}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{visitor.ip_address}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDistanceToNow(new Date(visitor.visited_at), { addSuffix: true })}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   )

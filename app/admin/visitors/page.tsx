@@ -5,16 +5,25 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { neon } from "@neondatabase/serverless"
 
+export const dynamic = "force-dynamic"
+
 export default async function VisitorsPage() {
   const sql = neon(process.env.DATABASE_URL!)
 
-  const stats = await sql`
-    SELECT 
-      COUNT(*)::int as total,
-      COUNT(DISTINCT ip_address)::int as unique_visitors,
-      COUNT(*) FILTER (WHERE visited_at > NOW() - INTERVAL '24 hours')::int as today
-    FROM visitors
-  `
+  let stats = [{ total: 0, unique_visitors: 0, today: 0 }]
+
+  try {
+    const result = await sql`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(DISTINCT ip_address)::int as unique_visitors,
+        COUNT(*) FILTER (WHERE visited_at > NOW() - INTERVAL '24 hours')::int as today
+      FROM visitors
+    `
+    stats = result
+  } catch (error) {
+    console.error("Error fetching visitor stats:", error)
+  }
 
   return (
     <div className="space-y-6">
