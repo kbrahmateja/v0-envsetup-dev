@@ -4,16 +4,24 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { neon } from "@neondatabase/serverless"
 
+export const dynamic = "force-dynamic"
+
 export default async function SubscribersPage() {
   const sql = neon(process.env.DATABASE_URL!)
 
-  const stats = await sql`
-    SELECT 
-      COUNT(*)::int as total,
-      COUNT(*) FILTER (WHERE status = 'active')::int as active,
-      COUNT(*) FILTER (WHERE subscribed_at > NOW() - INTERVAL '30 days')::int as recent
-    FROM subscribers
-  `
+  let stats
+  try {
+    stats = await sql`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(*) FILTER (WHERE status = 'active')::int as active,
+        COUNT(*) FILTER (WHERE subscribed_at > NOW() - INTERVAL '30 days')::int as recent
+      FROM subscribers
+    `
+  } catch (error) {
+    console.error("Error fetching subscriber stats:", error)
+    stats = [{ total: 0, active: 0, recent: 0 }]
+  }
 
   return (
     <div className="space-y-6">

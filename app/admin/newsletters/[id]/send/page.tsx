@@ -2,12 +2,20 @@ import { neon } from "@neondatabase/serverless"
 import { redirect } from "next/navigation"
 import { SendNewsletterForm } from "@/components/admin/send-newsletter-form"
 
+export const dynamic = "force-dynamic"
+
 export default async function SendNewsletterPage({ params }: { params: { id: string } }) {
   const sql = neon(process.env.DATABASE_URL!)
 
-  const newsletters = await sql`
-    SELECT * FROM newsletters WHERE id = ${params.id}
-  `
+  let newsletters
+  try {
+    newsletters = await sql`
+      SELECT * FROM newsletters WHERE id = ${params.id}
+    `
+  } catch (error) {
+    console.error("Error fetching newsletter:", error)
+    redirect("/admin/newsletters")
+  }
 
   if (newsletters.length === 0) {
     redirect("/admin/newsletters")
@@ -15,9 +23,15 @@ export default async function SendNewsletterPage({ params }: { params: { id: str
 
   const newsletter = newsletters[0]
 
-  const subscribers = await sql`
-    SELECT COUNT(*)::int as count FROM subscribers WHERE status = 'active'
-  `
+  let subscribers
+  try {
+    subscribers = await sql`
+      SELECT COUNT(*)::int as count FROM subscribers WHERE status = 'active'
+    `
+  } catch (error) {
+    console.error("Error fetching subscribers:", error)
+    subscribers = [{ count: 0 }]
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

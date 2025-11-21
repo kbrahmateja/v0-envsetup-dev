@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import Script from "next/script"
 import { PageTracker } from "@/components/analytics/page-tracker"
 import { VisitorTracker } from "@/components/visitor-tracker"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -36,7 +37,9 @@ export default function RootLayout({
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
-          <PageTracker />
+          <Suspense fallback={null}>
+            <PageTracker />
+          </Suspense>
           <VisitorTracker />
           {children}
         </ThemeProvider>

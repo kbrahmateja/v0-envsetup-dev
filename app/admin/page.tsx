@@ -4,6 +4,8 @@ import { RecentSubscribers } from "@/components/admin/recent-subscribers"
 import { RecentVisitors } from "@/components/admin/recent-visitors"
 import { Skeleton } from "@/components/ui/skeleton"
 
+export const dynamic = "force-dynamic"
+
 export default function AdminDashboard() {
   return (
     <div className="space-y-6">

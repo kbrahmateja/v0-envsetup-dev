@@ -7,11 +7,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export async function SubscribersList() {
   const sql = neon(process.env.DATABASE_URL!)
 
-  const subscribers = await sql`
-    SELECT * FROM subscribers
-    ORDER BY subscribed_at DESC
-    LIMIT 100
-  `
+  let subscribers: any[] = []
+
+  try {
+    subscribers = await sql`
+      SELECT * FROM subscribers
+      ORDER BY subscribed_at DESC
+      LIMIT 100
+    `
+  } catch (error) {
+    console.error("Error fetching subscribers list:", error)
+  }
 
   return (
     <Card>
@@ -19,28 +25,34 @@ export async function SubscribersList() {
         <CardTitle>All Subscribers</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Subscribed</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {subscribers.map((subscriber) => (
-              <TableRow key={subscriber.id}>
-                <TableCell className="font-medium">{subscriber.email}</TableCell>
-                <TableCell>
-                  <Badge variant={subscriber.status === "active" ? "default" : "secondary"}>{subscriber.status}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatDistanceToNow(new Date(subscriber.subscribed_at), { addSuffix: true })}
-                </TableCell>
+        {subscribers.length === 0 ? (
+          <div className="flex items-center justify-center h-40 text-muted-foreground">No subscribers yet</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Subscribed</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {subscribers.map((subscriber) => (
+                <TableRow key={subscriber.id}>
+                  <TableCell className="font-medium">{subscriber.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={subscriber.status === "active" ? "default" : "secondary"}>
+                      {subscriber.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDistanceToNow(new Date(subscriber.subscribed_at), { addSuffix: true })}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   )

@@ -9,15 +9,21 @@ import { formatDistanceToNow } from "date-fns"
 export async function NewsletterList() {
   const sql = neon(process.env.DATABASE_URL!)
 
-  const newsletters = await sql`
-    SELECT 
-      n.*,
-      COUNT(ns.id) as sent_count
-    FROM newsletters n
-    LEFT JOIN newsletter_sends ns ON n.id = ns.newsletter_id AND ns.status = 'sent'
-    GROUP BY n.id
-    ORDER BY n.created_at DESC
-  `
+  let newsletters: any[] = []
+
+  try {
+    newsletters = await sql`
+      SELECT 
+        n.*,
+        COUNT(ns.id) as sent_count
+      FROM newsletters n
+      LEFT JOIN newsletter_sends ns ON n.id = ns.newsletter_id AND ns.status = 'sent'
+      GROUP BY n.id
+      ORDER BY n.created_at DESC
+    `
+  } catch (error) {
+    console.error("Error fetching newsletters:", error)
+  }
 
   return (
     <div className="space-y-4">

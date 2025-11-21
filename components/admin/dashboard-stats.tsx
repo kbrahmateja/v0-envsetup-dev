@@ -5,12 +5,20 @@ import { Users, Mail, Eye, TrendingUp } from "lucide-react"
 export async function AdminDashboardStats() {
   const sql = neon(process.env.DATABASE_URL!)
 
-  // Fetch stats in parallel
-  const [subscribersResult, visitorsResult, newslettersResult] = await Promise.all([
-    sql`SELECT COUNT(*)::int as count FROM subscribers WHERE status = 'active'`,
-    sql`SELECT COUNT(*)::int as count FROM visitors WHERE visited_at > NOW() - INTERVAL '30 days'`,
-    sql`SELECT COUNT(*)::int as count FROM newsletters WHERE sent_at IS NOT NULL`,
-  ])
+  let subscribersResult, visitorsResult, newslettersResult
+
+  try {
+    ;[subscribersResult, visitorsResult, newslettersResult] = await Promise.all([
+      sql`SELECT COUNT(*)::int as count FROM subscribers WHERE status = 'active'`,
+      sql`SELECT COUNT(*)::int as count FROM visitors WHERE visited_at > NOW() - INTERVAL '30 days'`,
+      sql`SELECT COUNT(*)::int as count FROM newsletters WHERE sent_at IS NOT NULL`,
+    ])
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error)
+    subscribersResult = [{ count: 0 }]
+    visitorsResult = [{ count: 0 }]
+    newslettersResult = [{ count: 0 }]
+  }
 
   const stats = [
     {
