@@ -1,7 +1,5 @@
-import { Suspense } from "react"
 import { VisitorsList } from "@/components/admin/visitors-list"
 import { VisitorsChart } from "@/components/admin/visitors-chart"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { neon } from "@neondatabase/serverless"
 
@@ -61,13 +59,9 @@ export default async function VisitorsPage() {
         </Card>
       </div>
 
-      <Suspense fallback={<Skeleton className="h-80 w-full" />}>
-        <VisitorsChart />
-      </Suspense>
+      <VisitorsChart />
 
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <VisitorsList />
-      </Suspense>
+      <VisitorsList />
     </div>
   )
 }
