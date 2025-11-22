@@ -5,7 +5,14 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(req: NextRequest) {
   try {
-    const { newsletterId, mailService = "brevo", recipientMode, selectedEmails } = await req.json()
+    const {
+      newsletterId,
+      mailService = "brevo",
+      recipientMode,
+      selectedEmails,
+      template,
+      htmlContent,
+    } = await req.json()
 
     const newsletters = await sql`
       SELECT * FROM newsletters WHERE id = ${newsletterId}
@@ -16,6 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     const newsletter = newsletters[0]
+    const emailHtml = htmlContent || newsletter.html_content
 
     let subscribers
     if (recipientMode === "selected" && selectedEmails && selectedEmails.length > 0) {
@@ -51,10 +59,18 @@ export async function POST(req: NextRequest) {
     `
     const batchId = batchResult[0].id
 
+    if (template) {
+      await sql`
+        UPDATE newsletters
+        SET template = ${template}, html_content = ${emailHtml}
+        WHERE id = ${newsletterId}
+      `
+    }
+
     if (mailService === "resend") {
-      return await sendWithResend(newsletterId, newsletter, subscribers, batchId)
+      return await sendWithResend(newsletterId, { ...newsletter, html_content: emailHtml }, subscribers, batchId)
     } else {
-      return await sendWithBrevo(newsletterId, newsletter, subscribers, batchId)
+      return await sendWithBrevo(newsletterId, { ...newsletter, html_content: emailHtml }, subscribers, batchId)
     }
   } catch (error) {
     console.error("Error sending newsletter:", error)

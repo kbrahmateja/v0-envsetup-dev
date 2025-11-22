@@ -10,8 +10,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { AlertTriangle, Send, Users, Search } from "lucide-react"
+import { AlertTriangle, Send, Users, Search, Eye, Mail } from "lucide-react"
 import { toast } from "sonner"
+import { emailTemplates, generateEmailHTML } from "@/lib/email-templates"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 type Subscriber = {
   id: number
@@ -25,8 +27,12 @@ export function SendNewsletterForm({ newsletter, subscribers }: { newsletter: an
   const [recipientMode, setRecipientMode] = useState<"all" | "selected">("all")
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedTemplate, setSelectedTemplate] = useState(newsletter.template || "simple-update")
 
-  // Filter subscribers based on search
+  const currentHtmlContent = useMemo(() => {
+    return generateEmailHTML(selectedTemplate, newsletter.subject, newsletter.content)
+  }, [selectedTemplate, newsletter.subject, newsletter.content])
+
   const filteredSubscribers = useMemo(() => {
     if (!searchQuery) return subscribers
     const query = searchQuery.toLowerCase()
@@ -77,6 +83,8 @@ export function SendNewsletterForm({ newsletter, subscribers }: { newsletter: an
           newsletterId: newsletter.id,
           recipientMode,
           selectedEmails: recipientMode === "selected" ? Array.from(selectedEmails) : undefined,
+          template: selectedTemplate,
+          htmlContent: currentHtmlContent,
         }),
       })
 
@@ -101,6 +109,35 @@ export function SendNewsletterForm({ newsletter, subscribers }: { newsletter: an
           cannot be undone.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Template
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={selectedTemplate} onValueChange={setSelectedTemplate}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {emailTemplates.map((template) => (
+                <label
+                  key={template.id}
+                  className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:border-primary ${
+                    selectedTemplate === template.id ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <RadioGroupItem value={template.id} id={`template-${template.id}`} />
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">{template.name}</div>
+                    <div className="text-xs text-muted-foreground">{template.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -185,7 +222,25 @@ export function SendNewsletterForm({ newsletter, subscribers }: { newsletter: an
 
       <Card>
         <CardHeader>
-          <CardTitle>Newsletter Preview</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Newsletter Preview</span>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview Email
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+                <DialogHeader>
+                  <DialogTitle>Full Email Preview</DialogTitle>
+                </DialogHeader>
+                <div className="border rounded-lg overflow-hidden">
+                  <iframe srcDoc={currentHtmlContent} className="w-full h-[600px] border-0" title="Email Preview" />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -200,6 +255,10 @@ export function SendNewsletterForm({ newsletter, subscribers }: { newsletter: an
                 <p key={idx}>{paragraph}</p>
               ))}
             </div>
+          </div>
+
+          <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+            <strong>Template:</strong> {emailTemplates.find((t) => t.id === selectedTemplate)?.name || "Unknown"}
           </div>
         </CardContent>
       </Card>
