@@ -5,9 +5,8 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(req: NextRequest) {
   try {
-    const { newsletterId, mailService = "brevo" } = await req.json()
+    const { newsletterId, mailService = "brevo", recipientMode, selectedEmails } = await req.json()
 
-    // Get newsletter
     const newsletters = await sql`
       SELECT * FROM newsletters WHERE id = ${newsletterId}
     `
@@ -18,10 +17,18 @@ export async function POST(req: NextRequest) {
 
     const newsletter = newsletters[0]
 
-    // Get active subscribers
-    const subscribers = await sql`
-      SELECT email FROM subscribers WHERE status = 'active'
-    `
+    let subscribers
+    if (recipientMode === "selected" && selectedEmails && selectedEmails.length > 0) {
+      subscribers = await sql`
+        SELECT email FROM subscribers 
+        WHERE status = 'active' 
+        AND email = ANY(${selectedEmails})
+      `
+    } else {
+      subscribers = await sql`
+        SELECT email FROM subscribers WHERE status = 'active'
+      `
+    }
 
     if (subscribers.length === 0) {
       return NextResponse.json({ error: "No active subscribers" }, { status: 400 })

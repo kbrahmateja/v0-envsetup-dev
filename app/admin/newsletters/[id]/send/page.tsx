@@ -26,21 +26,22 @@ export default async function SendNewsletterPage({ params }: { params: { id: str
   let subscribers
   try {
     subscribers = await sql`
-      SELECT COUNT(*)::int as count FROM subscribers WHERE status = 'active'
+      SELECT id, email, subscribed_at FROM subscribers WHERE status = 'active'
+      ORDER BY subscribed_at DESC
     `
   } catch (error) {
     console.error("Error fetching subscribers:", error)
-    subscribers = [{ count: 0 }]
+    subscribers = []
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Send Newsletter</h1>
-        <p className="text-muted-foreground">Review and send to {subscribers[0].count} active subscribers</p>
+        <p className="text-muted-foreground">Select recipients and send your newsletter</p>
       </div>
 
-      <SendNewsletterForm newsletter={newsletter} subscriberCount={subscribers[0].count} />
+      <SendNewsletterForm newsletter={newsletter} subscribers={subscribers} />
     </div>
   )
 }
