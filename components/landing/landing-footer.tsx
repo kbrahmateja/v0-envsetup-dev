@@ -5,9 +5,9 @@ export function LandingFooter() {
     {
       title: "Product",
       links: [
-        { label: "Features", href: "#features" },
-        { label: "Tech Stacks", href: "#tech-stacks" },
-        { label: "Pricing", href: "#pricing" },
+        { label: "Features", href: "/#features" },
+        { label: "Tech Stacks", href: "/#tech-stacks" },
+        { label: "Pricing", href: "/pricing" },
         { label: "Generator", href: "/generator" },
       ],
     },
@@ -24,9 +24,16 @@ export function LandingFooter() {
       title: "Company",
       links: [
         { label: "About", href: "#" },
-        { label: "Contact", href: "#" },
-        { label: "Privacy", href: "#" },
-        { label: "Terms", href: "#" },
+        { label: "Contact", href: "/contact" },
+        { label: "Careers", href: "#" },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Terms & Conditions", href: "/terms" },
+        { label: "Refund Policy", href: "/refund" },
       ],
     },
   ]
@@ -34,7 +41,7 @@ export function LandingFooter() {
   return (
     <footer className="border-t border-border/40 bg-background">
       <div className="container py-12 md:py-16">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center space-x-2 mb-4">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-secondary" />
@@ -64,8 +71,24 @@ export function LandingFooter() {
           ))}
         </div>
 
-        <div className="mt-12 border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Envsetup.dev. All rights reserved.</p>
+        <div className="mt-12 border-t border-border/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground text-center md:text-left">
+            &copy; {new Date().getFullYear()} Envsetup.dev. All rights reserved.
+          </p>
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">
+              Terms
+            </Link>
+            <Link href="/refund" className="hover:text-foreground transition-colors">
+              Refunds
+            </Link>
+            <Link href="/contact" className="hover:text-foreground transition-colors">
+              Contact
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
