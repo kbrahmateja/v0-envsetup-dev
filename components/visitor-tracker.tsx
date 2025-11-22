@@ -10,6 +10,9 @@ export function VisitorTracker() {
     // Track page view
     const trackVisit = async () => {
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+
         await fetch("/api/track-visitor", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -17,9 +20,14 @@ export function VisitorTracker() {
             page_url: window.location.href,
             referrer: document.referrer,
           }),
+          signal: controller.signal,
         })
+
+        clearTimeout(timeoutId)
       } catch (error) {
-        console.error("Failed to track visit:", error)
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Failed to track visit:", error)
+        }
       }
     }
 

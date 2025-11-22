@@ -1,7 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+let sql: ReturnType<typeof neon>
+
+try {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is not configured")
+  }
+  sql = neon(process.env.DATABASE_URL)
+} catch (error) {
+  console.error("Failed to initialize database connection:", error)
+}
 
 async function getLocationFromIP(ip: string) {
   try {
@@ -13,6 +22,7 @@ async function getLocationFromIP(ip: string) {
     // Using ip-api.com free API (no key required, 45 requests/minute)
     const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`, {
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
     })
 
     if (!response.ok) {
@@ -38,6 +48,17 @@ async function getLocationFromIP(ip: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!sql) {
+      console.error("Database connection not initialized")
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Database connection not available",
+        },
+        { status: 503 },
+      )
+    }
+
     const body = await req.json()
     const { page_url, referrer } = body
 
@@ -51,10 +72,15 @@ export async function POST(req: NextRequest) {
 
     const location = await getLocationFromIP(ip)
 
-    await sql`
-      INSERT INTO visitors (ip_address, user_agent, page_url, referrer, country, city, visited_at)
-      VALUES (${ip}, ${userAgent}, ${page_url}, ${referrer || ""}, ${location.country}, ${location.city}, NOW())
+    const insertPromise = sql`
+      INSERT INTO visitors (ip_address, user_agent, page_url, referrer, country, city, state, visited_at)
+      VALUES (${ip}, ${userAgent}, ${page_url}, ${referrer || ""}, ${location.country}, ${location.city}, ${location.state}, NOW())
     `
+
+    await Promise.race([
+      insertPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Database query timeout")), 10000)),
+    ])
 
     return NextResponse.json({
       success: true,
@@ -66,6 +92,7 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )
