@@ -62,14 +62,12 @@ export async function NewsletterList() {
                     <Edit className="h-4 w-4" />
                   </Button>
                 </Link>
-                {newsletter.status !== "sent" && (
-                  <Link href={`/admin/newsletters/${newsletter.id}/send`}>
-                    <Button size="sm">
-                      <Send className="h-4 w-4 mr-2" />
-                      Send
-                    </Button>
-                  </Link>
-                )}
+                <Link href={`/admin/newsletters/${newsletter.id}/send`}>
+                  <Button size="sm">
+                    <Send className="h-4 w-4 mr-2" />
+                    {newsletter.status === "sent" ? "Resend" : "Send"}
+                  </Button>
+                </Link>
               </div>
             </div>
           </CardContent>
