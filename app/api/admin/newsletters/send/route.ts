@@ -34,10 +34,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No active subscribers" }, { status: 400 })
     }
 
+    const batchResult = await sql`
+      INSERT INTO newsletter_send_batches (
+        newsletter_id, 
+        total_recipients, 
+        mail_service, 
+        recipient_mode
+      )
+      VALUES (
+        ${newsletterId}, 
+        ${subscribers.length}, 
+        ${mailService}, 
+        ${recipientMode || "all"}
+      )
+      RETURNING id
+    `
+    const batchId = batchResult[0].id
+
     if (mailService === "resend") {
-      return await sendWithResend(newsletterId, newsletter, subscribers)
+      return await sendWithResend(newsletterId, newsletter, subscribers, batchId)
     } else {
-      return await sendWithBrevo(newsletterId, newsletter, subscribers)
+      return await sendWithBrevo(newsletterId, newsletter, subscribers, batchId)
     }
   } catch (error) {
     console.error("Error sending newsletter:", error)
@@ -45,7 +62,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function sendWithBrevo(newsletterId: string, newsletter: any, subscribers: any[]) {
+async function sendWithBrevo(newsletterId: string, newsletter: any, subscribers: any[], batchId: number) {
   const brevoApiKey = process.env.BREVO_API_KEY
 
   if (!brevoApiKey) {
@@ -73,16 +90,16 @@ async function sendWithBrevo(newsletterId: string, newsletter: any, subscribers:
       const errorMessage = response.ok ? null : await response.text()
 
       await sql`
-        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, sent_at, error_message)
-        VALUES (${newsletterId}, ${subscriber.email}, ${status}, NOW(), ${errorMessage})
+        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, sent_at, error_message, batch_id)
+        VALUES (${newsletterId}, ${subscriber.email}, ${status}, NOW(), ${errorMessage}, ${batchId})
       `
 
       return { email: subscriber.email, status }
     } catch (error) {
       console.error(`Error sending to ${subscriber.email}:`, error)
       await sql`
-        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, error_message)
-        VALUES (${newsletterId}, ${subscriber.email}, 'failed', ${String(error)})
+        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, error_message, batch_id)
+        VALUES (${newsletterId}, ${subscriber.email}, 'failed', ${String(error)}, ${batchId})
       `
       return { email: subscriber.email, status: "failed" }
     }
@@ -90,14 +107,20 @@ async function sendWithBrevo(newsletterId: string, newsletter: any, subscribers:
 
   const results = await Promise.all(sendPromises)
 
+  const successful = results.filter((r) => r.status === "sent").length
+  const failed = results.filter((r) => r.status === "failed").length
+
+  await sql`
+    UPDATE newsletter_send_batches
+    SET successful_sends = ${successful}, failed_sends = ${failed}
+    WHERE id = ${batchId}
+  `
+
   await sql`
     UPDATE newsletters
     SET status = 'sent', sent_at = NOW()
     WHERE id = ${newsletterId}
   `
-
-  const successful = results.filter((r) => r.status === "sent").length
-  const failed = results.filter((r) => r.status === "failed").length
 
   return NextResponse.json({
     success: true,
@@ -105,10 +128,11 @@ async function sendWithBrevo(newsletterId: string, newsletter: any, subscribers:
     failed,
     total: subscribers.length,
     service: "brevo",
+    batchId,
   })
 }
 
-async function sendWithResend(newsletterId: string, newsletter: any, subscribers: any[]) {
+async function sendWithResend(newsletterId: string, newsletter: any, subscribers: any[], batchId: number) {
   const resendApiKey = process.env.RESEND_API_KEY
 
   if (!resendApiKey) {
@@ -136,16 +160,16 @@ async function sendWithResend(newsletterId: string, newsletter: any, subscribers
       const errorMessage = response.ok ? null : await response.text()
 
       await sql`
-        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, sent_at, error_message)
-        VALUES (${newsletterId}, ${subscriber.email}, ${status}, NOW(), ${errorMessage})
+        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, sent_at, error_message, batch_id)
+        VALUES (${newsletterId}, ${subscriber.email}, ${status}, NOW(), ${errorMessage}, ${batchId})
       `
 
       return { email: subscriber.email, status }
     } catch (error) {
       console.error(`Error sending to ${subscriber.email}:`, error)
       await sql`
-        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, error_message)
-        VALUES (${newsletterId}, ${subscriber.email}, 'failed', ${String(error)})
+        INSERT INTO newsletter_sends (newsletter_id, subscriber_email, status, error_message, batch_id)
+        VALUES (${newsletterId}, ${subscriber.email}, 'failed', ${String(error)}, ${batchId})
       `
       return { email: subscriber.email, status: "failed" }
     }
@@ -153,14 +177,20 @@ async function sendWithResend(newsletterId: string, newsletter: any, subscribers
 
   const results = await Promise.all(sendPromises)
 
+  const successful = results.filter((r) => r.status === "sent").length
+  const failed = results.filter((r) => r.status === "failed").length
+
+  await sql`
+    UPDATE newsletter_send_batches
+    SET successful_sends = ${successful}, failed_sends = ${failed}
+    WHERE id = ${batchId}
+  `
+
   await sql`
     UPDATE newsletters
     SET status = 'sent', sent_at = NOW()
     WHERE id = ${newsletterId}
   `
-
-  const successful = results.filter((r) => r.status === "sent").length
-  const failed = results.filter((r) => r.status === "failed").length
 
   return NextResponse.json({
     success: true,
@@ -168,5 +198,6 @@ async function sendWithResend(newsletterId: string, newsletter: any, subscribers
     failed,
     total: subscribers.length,
     service: "resend",
+    batchId,
   })
 }
