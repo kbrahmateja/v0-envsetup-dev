@@ -10,10 +10,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { emailTemplates, generateEmailHTML } from "@/lib/email-templates"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Eye } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 export function NewsletterForm({ newsletter }: { newsletter?: any }) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState(newsletter?.template || "simple-update")
   const [formData, setFormData] = useState({
     title: newsletter?.title || "",
     subject: newsletter?.subject || "",
@@ -25,11 +30,15 @@ export function NewsletterForm({ newsletter }: { newsletter?: any }) {
     setIsSubmitting(true)
 
     try {
+      const htmlContent = generateEmailHTML(selectedTemplate, formData.subject, formData.content)
+
       const response = await fetch("/api/admin/newsletters", {
         method: newsletter ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          html_content: htmlContent,
+          template: selectedTemplate,
           status,
           id: newsletter?.id,
         }),
@@ -47,8 +56,41 @@ export function NewsletterForm({ newsletter }: { newsletter?: any }) {
     }
   }
 
+  const previewHTML = generateEmailHTML(
+    selectedTemplate,
+    formData.subject,
+    formData.content || "Your content will appear here...",
+  )
+
   return (
-    <form onSubmit={(e) => handleSubmit(e, "draft")}>
+    <form onSubmit={(e) => handleSubmit(e, "draft")} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Choose Email Template</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={selectedTemplate} onValueChange={setSelectedTemplate}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {emailTemplates.map((template) => (
+                <label
+                  key={template.id}
+                  className={`flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all hover:border-primary ${
+                    selectedTemplate === template.id ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <RadioGroupItem value={template.id} id={template.id} />
+                  <div className="flex-1">
+                    <div className="font-semibold">{template.name}</div>
+                    <div className="text-sm text-muted-foreground">{template.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{template.preview}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Newsletter Details</CardTitle>
@@ -87,9 +129,26 @@ export function NewsletterForm({ newsletter }: { newsletter?: any }) {
               required
             />
             <p className="text-xs text-muted-foreground">
-              Tip: Use simple formatting. HTML will be generated automatically.
+              Your content will be automatically formatted based on the selected template.
             </p>
           </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" className="w-full bg-transparent">
+                <Eye className="h-4 w-4 mr-2" />
+                Preview Email
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>Email Preview</DialogTitle>
+              </DialogHeader>
+              <div className="border rounded-lg overflow-hidden">
+                <iframe srcDoc={previewHTML} className="w-full h-[600px] border-0" title="Email Preview" />
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <div className="flex gap-3">
             <Button type="submit" disabled={isSubmitting}>

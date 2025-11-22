@@ -1,10 +1,16 @@
 import type { ReactNode } from "react"
+import { cookies } from "next/headers"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { AdminHeader } from "@/components/admin/admin-header"
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  // TODO: Add authentication check here
-  // For now, we'll allow access but you should add proper auth
+  const cookieStore = await cookies()
+  const sessionToken = cookieStore.get("admin_session")?.value
+  const isAuthenticated = !!sessionToken
+
+  if (!isAuthenticated) {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
