@@ -130,7 +130,7 @@ export default function PresentationPage() {
   const scrollNext = React.useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi])
 
   return (
-    <div className="relative min-h-screen bg-black text-white overflow-hidden flex flex-col font-sans">
+    <div className="relative h-screen bg-black text-white overflow-hidden flex flex-col font-sans">
       {/* Animated Mesh Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/10 blur-[120px] animate-mesh-1" />

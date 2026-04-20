@@ -24,7 +24,7 @@ export default function PresentationSlide({
   index,
 }: PresentationSlideProps) {
   return (
-    <div className={cn("flex-none w-full h-full flex flex-col items-center justify-center px-4 md:px-12 py-20", className)}>
+    <div className={cn("flex-none w-full h-full flex flex-col items-center justify-center px-4 md:px-12 py-8 md:py-12", className)}>
       <div className="max-w-5xl w-full animate-in fade-in slide-in-from-bottom-5 duration-1000 ease-out fill-mode-both">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-16 items-center">
           {/* Content Side */}
