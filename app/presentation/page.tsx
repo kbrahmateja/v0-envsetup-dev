@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import useEmblaCarousel from "embla-carousel-react"
-import { ChevronLeft, ChevronRight, Rocket, Cloud, Terminal, ShieldCheck, TrendingUp, Home, ArrowRight, Sparkles } from "lucide-react"
+import { ChevronLeft, ChevronRight, Rocket, Cloud, Terminal, ShieldCheck, TrendingUp, Home, ArrowRight, Sparkles, Play, Pause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import PresentationSlide from "@/components/presentation-slide"
 import Link from "next/link"
+import Autoplay from "embla-carousel-autoplay"
 
 const slides = [
   {
@@ -107,7 +108,12 @@ const slides = [
 ]
 
 export default function PresentationPage() {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false })
+  const [isPlaying, setIsPlaying] = React.useState(true)
+  const autoplay = React.useRef(
+    Autoplay({ delay: 6000, stopOnInteraction: false, playOnInit: true })
+  )
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false }, [autoplay.current])
   const [selectedIndex, setSelectedIndex] = React.useState(0)
   const [canScrollPrev, setCanScrollPrev] = React.useState(false)
   const [canScrollNext, setCanScrollNext] = React.useState(true)
@@ -128,6 +134,18 @@ export default function PresentationPage() {
 
   const scrollPrev = React.useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi])
   const scrollNext = React.useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi])
+
+  const toggleAutoplay = React.useCallback(() => {
+    const autoplayPlugin = autoplay.current
+    if (!autoplayPlugin) return
+
+    if (isPlaying) {
+      autoplayPlugin.stop()
+    } else {
+      autoplayPlugin.play()
+    }
+    setIsPlaying(!isPlaying)
+  }, [isPlaying])
 
   return (
     <div className="relative h-screen bg-black text-white overflow-hidden flex flex-col font-sans">
@@ -191,6 +209,15 @@ export default function PresentationPage() {
 
         {/* Navigation Buttons */}
         <div className="absolute bottom-8 right-8 flex items-center gap-4 z-20">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleAutoplay}
+            className="rounded-full w-12 h-12 border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 text-blue-400"
+            title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
+          >
+            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+          </Button>
           <Button
             variant="outline"
             size="icon"
