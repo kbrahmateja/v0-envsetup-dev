@@ -7,7 +7,8 @@ import { OrbitControls, Environment, PerspectiveCamera, Float } from "@react-thr
 import { Suspense, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Sparkles, CheckCircle2, XCircle } from "lucide-react"
+import { Loader2, Sparkles, CheckCircle2, XCircle, Rocket } from "lucide-react"
+import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import AnimatedLogos from "./animated-logos"
@@ -216,10 +217,19 @@ export default function ComingSoonScene() {
               </p>
             </form>
 
-            {/* Launch Indicator */}
-            <div className="mt-6 md:mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 backdrop-blur-sm border border-green-500/30">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-green-300">Launching Soon</span>
+            {/* Launch Indicator & Links */}
+            <div className="mt-6 md:mt-8 flex flex-col items-center gap-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 backdrop-blur-sm border border-green-500/30">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-sm font-medium text-green-300">Launching Soon</span>
+              </div>
+              
+              <Button asChild variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5 transition-all text-sm gap-2">
+                <Link href="/presentation">
+                  <Rocket className="w-4 h-4" />
+                  View Project Overview
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
