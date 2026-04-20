@@ -159,22 +159,18 @@ export default function PresentationPage() {
 
       {/* Header */}
       <header className="relative z-20 flex items-center justify-between px-6 py-6 border-b border-white/5 bg-black/20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 group transition-transform hover:scale-105">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
             <Rocket className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight">envsetup.dev</span>
-        </div>
+        </Link>
         
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-          <Link href="/" className="hover:text-white transition-colors">Platform</Link>
-          <Link href="/generator" className="hover:text-white transition-colors">Generator</Link>
-          <Link href="/admin" className="hover:text-white transition-colors">Dashboard</Link>
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+            Project Overview
+          </div>
         </div>
-
-        <Button variant="outline" size="sm" asChild className="rounded-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
-          <Link href="/generator">Get Started <ArrowRight className="ml-2 w-4 h-4" /></Link>
-        </Button>
       </header>
 
       {/* Carousel */}
@@ -253,15 +249,6 @@ export default function PresentationPage() {
           </span>
         </div>
       </main>
-
-      {/* Floating Home Button */}
-      <Link 
-        href="/" 
-        className="absolute bottom-32 right-12 md:bottom-auto md:top-32 md:right-8 z-30 w-10 h-10 rounded-full border border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-center hover:bg-white/10 transition-all text-gray-400 hover:text-white"
-        title="Go to Homepage"
-      >
-        <Home className="w-5 h-5" />
-      </Link>
     </div>
   )
 }
