@@ -1,14 +1,15 @@
 # dependencies
-/node_modules
+node_modules/
 /.pnpm-debug.log*
 /pnpm-debug.log*
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
 # build
-/build
+build/
+dist/
 
 # debug
 npm-debug.log*
