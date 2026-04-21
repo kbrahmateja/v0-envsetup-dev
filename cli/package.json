@@ -1,6 +1,6 @@
 {
   "name": "envsetup",
-  "version": "0.1.0",
+  "version": "0.0.1-alpha",
   "type": "module",
   "description": "Standardize your development environments with AI-powered orchestration.",
   "main": "./dist/index.js",

@@ -4,8 +4,8 @@
 
 `envsetup.dev` replaces manual, error-prone `setup.sh` scripts and inconsistent Docker configs with a powerful, modern CLI and an AI-driven platform.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://v0-envsetup-dev.vercel.app/)
-[![CLI Version](https://img.shields.io/badge/CLI-v1.0.0-blue?style=for-the-badge)](./cli)
+[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/fSuP1nkcamn)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.0.1--alpha-orange?style=for-the-badge)](./cli)
 
 ## 🌟 Key Features
 
