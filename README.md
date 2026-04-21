@@ -1,30 +1,63 @@
-# envsetup.dev
+# envsetup.dev 🚀
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+**Standardize your development environments with AI-powered orchestration.**
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/kbrahamtejas-projects/v0-envsetup-dev-hn)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/fSuP1nkcamn)
+`envsetup.dev` replaces manual, error-prone `setup.sh` scripts and inconsistent Docker configs with a powerful, modern CLI and an AI-driven platform.
 
-## Overview
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://v0-envsetup-dev.vercel.app/)
+[![CLI Version](https://img.shields.io/badge/CLI-v1.0.0-blue?style=for-the-badge)](./cli)
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+## 🌟 Key Features
 
-## Deployment
+- **Standardized Environments**: Generate production-ready Docker setups for any stack (Next.js, FastAPI, Go, Express).
+- **Interactive Wizard**: A beautiful, modern CLI experience to initialize your projects in seconds.
+- **AI Recommendation Engine**: (Coming Soon) Let AI find the perfect tools and versions for your specific project needs.
+- **Unified Orchestration**: Manage your entire project lifecycle (Dev, Sync, Deploy) through a single tool.
 
-Your project is live at:
+---
 
-**[https://vercel.com/kbrahamtejas-projects/v0-envsetup-dev-hn](https://vercel.com/kbrahamtejas-projects/v0-envsetup-dev-hn)**
+## 🛠️ Getting Started with the CLI
 
-## Build your app
+The core of `envsetup.dev` is our global CLI. To get started locally:
 
-Continue building your app on:
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/kbrahmateja/v0-envsetup-dev.git
+   cd v0-envsetup-dev
+   ```
 
-**[https://v0.app/chat/fSuP1nkcamn](https://v0.app/chat/fSuP1nkcamn)**
+2. **Setup the CLI**:
+   ```bash
+   cd cli
+   pnpm install
+   pnpm build
+   ```
 
-## How It Works
+3. **Run your first initialization**:
+   ```bash
+   # From your project directory
+   node /path/to/cli/dist/index.js init
+   ```
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+---
+
+## 📁 Project Structure
+
+- `/app`: The web platform (Next.js 15) for managing architectures and analytics.
+- `/components`: Premium UI components powered by Tailwind CSS and Framer Motion.
+- `/cli`: The source code for the `envsetup` CLI tool.
+- `/lib`: Shared utilities and database logic.
+
+---
+
+## 🚀 Roadmap
+
+- [x] CLI Foundation & Interactive Wizard
+- [x] Presentation & Strategy Deck
+- [ ] **Phase 2**: Expanded Framework Templates (Java, Ruby, Rust)
+- [ ] **Phase 3**: `envsetup doctor` for local system health checks
+- [ ] **Phase 4**: MCP (Model Context Protocol) Server for AI Agent integration
+
+---
+
+Built with ❤️ by the envsetup.dev team.

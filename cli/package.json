@@ -1,0 +1,36 @@
+{
+  "name": "envsetup",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Global CLI for envsetup.dev - Standardize your development environments.",
+  "main": "./dist/index.js",
+  "bin": {
+    "envsetup": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/index.js",
+    "dev": "tsc -w"
+  },
+  "keywords": [
+    "envsetup",
+    "cli",
+    "devops",
+    "environment",
+    "setup",
+    "docker"
+  ],
+  "author": "envsetup.dev",
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.3.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3"
+  }
+}
