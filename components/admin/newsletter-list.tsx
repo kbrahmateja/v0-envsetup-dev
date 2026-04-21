@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -7,7 +7,6 @@ import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 
 export async function NewsletterList() {
-  const sql = neon(process.env.DATABASE_URL!)
 
   let newsletters: any[] = []
 

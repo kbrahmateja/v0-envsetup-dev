@@ -2,12 +2,11 @@ import { Suspense } from "react"
 import { SubscribersList } from "@/components/admin/subscribers-list"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
 export default async function SubscribersPage() {
-  const sql = neon(process.env.DATABASE_URL!)
 
   let stats
   try {

@@ -1,9 +1,8 @@
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!)
 
     const chartData = await sql`
       SELECT 

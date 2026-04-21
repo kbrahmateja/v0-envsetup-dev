@@ -1,11 +1,10 @@
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import { SendNewsletterForm } from "@/components/admin/send-newsletter-form"
 
 export const dynamic = "force-dynamic"
 
 export default async function SendNewsletterPage({ params }: { params: { id: string } }) {
-  const sql = neon(process.env.DATABASE_URL!)
 
   let newsletters
   try {

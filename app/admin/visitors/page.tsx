@@ -1,12 +1,11 @@
 import { VisitorsList } from "@/components/admin/visitors-list"
 import { VisitorsChart } from "@/components/admin/visitors-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
 export default async function VisitorsPage() {
-  const sql = neon(process.env.DATABASE_URL!)
 
   let stats = [{ total: 0, unique_visitors: 0, today: 0 }]
 

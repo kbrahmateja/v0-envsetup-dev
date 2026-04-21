@@ -1,11 +1,10 @@
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export async function SubscribersList() {
-  const sql = neon(process.env.DATABASE_URL!)
 
   let subscribers: any[] = []
 

@@ -1,9 +1,8 @@
-import { neon } from "@neondatabase/serverless"
+import { sql } from "@/lib/db"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Mail, Eye, TrendingUp } from "lucide-react"
 
 export async function AdminDashboardStats() {
-  const sql = neon(process.env.DATABASE_URL!)
 
   let subscribersResult, visitorsResult, newslettersResult
 
