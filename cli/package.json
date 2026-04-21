@@ -1,5 +1,5 @@
 {
-  "name": "envsetup-cli",
+  "name": "@envsetup/cli",
   "version": "0.0.1-alpha",
   "type": "module",
   "description": "Standardize your development environments with AI-powered orchestration.",

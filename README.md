@@ -22,12 +22,12 @@ The core of `envsetup.dev` is our global CLI. To get started locally:
 
 1. **Install globally from NPM**:
    ```bash
-   npm install -g envsetup-cli@alpha
+   npm install -g @envsetup/cli@alpha
    ```
 
 2. **Initialize your first project**:
    ```bash
-   envsetup-cli init
+   envsetup init
    ```
 
 ---
@@ -36,7 +36,7 @@ The core of `envsetup.dev` is our global CLI. To get started locally:
 
 - `/app`: The web platform (Next.js 15) for managing architectures and analytics.
 - `/components`: Premium UI components powered by Tailwind CSS and Framer Motion.
-- `/cli`: The source code for the `envsetup-cli` tool.
+- `/cli`: The source code for the `@envsetup/cli` tool.
 - `/lib`: Shared utilities and database logic.
 
 ---
