@@ -33,7 +33,7 @@ export function PageTracker() {
                                 path: pathname,
                                 search: searchParams.toString(),
                                 timestamp: new Date().toISOString(),
-                                retried: true
+                                retried: 'true'
                             }
                         })
                         console.log('[Plausible] Retried tracking pageview:', pathname)
