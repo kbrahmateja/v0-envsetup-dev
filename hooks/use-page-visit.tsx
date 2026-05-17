@@ -8,7 +8,7 @@ export function usePageVisit() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.plausible) {
-      window.plausible("pageview", { props: { path: pathname } })
+      window.plausible("pageview", { props: { path: pathname ?? "" } })
     }
   }, [pathname])
 }

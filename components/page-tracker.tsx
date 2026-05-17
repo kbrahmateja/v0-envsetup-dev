@@ -15,8 +15,8 @@ export function PageTracker() {
                 // Track the page view
                 window.plausible('pageview', {
                     props: {
-                        path: pathname,
-                        search: searchParams.toString(),
+                        path: pathname ?? "",
+                        search: searchParams?.toString() ?? "",
                         timestamp: new Date().toISOString()
                     }
                 })
@@ -30,8 +30,8 @@ export function PageTracker() {
                     if (typeof window !== 'undefined' && typeof window.plausible === 'function') {
                         window.plausible('pageview', {
                             props: {
-                                path: pathname,
-                                search: searchParams.toString(),
+                                path: pathname ?? "",
+                                search: searchParams?.toString() ?? "",
                                 timestamp: new Date().toISOString(),
                                 retried: 'true'
                             }

@@ -9,7 +9,7 @@ export function PageTracker() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const url = pathname + searchParams.toString()
+    const url = (pathname ?? "") + (searchParams?.toString() ?? "")
     pageview(url)
   }, [pathname, searchParams])
 

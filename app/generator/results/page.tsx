@@ -16,11 +16,11 @@ function ResultsContent() {
   const [showDeployment, setShowDeployment] = useState(false)
 
   const projectData = {
-    projectName: searchParams.get("projectName") || "",
-    language: searchParams.get("language") || "",
-    framework: searchParams.get("framework") || "",
-    description: searchParams.get("description") || "",
-    tools: searchParams.get("tools")?.split(",").filter(Boolean) || [],
+    projectName: searchParams?.get("projectName") ?? "",
+    language: searchParams?.get("language") ?? "",
+    framework: searchParams?.get("framework") ?? "",
+    description: searchParams?.get("description") ?? "",
+    tools: searchParams?.get("tools")?.split(",").filter(Boolean) ?? [],
   }
 
   const envConfig: EnvironmentConfig = {
