@@ -1,60 +1,68 @@
-import { Box, Code, Cpu, FileCode, GitBranch, Package } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Code, Download, GitBranch, Layers, Settings, Zap, Bot, Cloud } from "lucide-react"
 
-export function FeaturesSection() {
-  const features = [
-    {
-      icon: <FileCode className="h-10 w-10 text-violet-500" />,
-      title: "Smart Stack Generator",
-      description:
-        "Select your programming language, framework, package manager, and dependencies to generate a custom development environment.",
-    },
-    {
-      icon: <Box className="h-10 w-10 text-cyan-500" />,
-      title: "Environment Packaging",
-      description:
-        "Get your environment as Docker, VS Code Dev Container, GitPod, local setup script, or cloud-hosted devbox.",
-    },
-    {
-      icon: <Package className="h-10 w-10 text-emerald-500" />,
-      title: "Presets & Templates",
-      description: "Choose from popular pre-built stacks like MERN, LAMP, T3, or create and share your own templates.",
-    },
-    {
-      icon: <GitBranch className="h-10 w-10 text-amber-500" />,
-      title: "DevOps Integration",
-      description: "Add CI/CD pipelines, deployment targets, and testing setups to your development environment.",
-    },
-    {
-      icon: <Cpu className="h-10 w-10 text-rose-500" />,
-      title: "AI Suggestions",
-      description:
-        "Get AI-powered recommendations for best practices, dependencies, security configs, and folder structures.",
-    },
-    {
-      icon: <Code className="h-10 w-10 text-indigo-500" />,
-      title: "CLI Tool",
-      description: "Use our CLI to pull templates directly into your local system and automate environment setup.",
-    },
-  ]
+const features = [
+  {
+    icon: Bot,
+    title: "AI-Powered Assistant",
+    description: "Chat with AI to discover the perfect software stack and versions for your project.",
+  },
+  {
+    icon: Zap,
+    title: "Instant Generation",
+    description: "Generate complete development environments in seconds, not hours.",
+  },
+  {
+    icon: Cloud,
+    title: "Auto Deployment",
+    description: "Deploy directly to cloud providers or dedicated servers with one click.",
+  },
+  {
+    icon: Code,
+    title: "50+ Languages",
+    description: "Support for all major programming languages and frameworks.",
+  },
+  {
+    icon: Settings,
+    title: "Fully Customizable",
+    description: "Tailor every aspect of your environment to your specific needs.",
+  },
+  {
+    icon: Download,
+    title: "Multiple Formats",
+    description: "Download as ZIP, push to GitHub, or use our CLI tool.",
+  },
+  {
+    icon: GitBranch,
+    title: "Git Integration",
+    description: "Automatic Git initialization with proper .gitignore files.",
+  },
+  {
+    icon: Layers,
+    title: "Best Practices",
+    description: "Follows industry standards and best practices out of the box.",
+  },
+]
 
+export default function FeaturesSection() {
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
-      <div className="container px-4 md:px-6">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Key Features</h2>
-            <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Everything you need to create, configure, and deploy your development environments
-            </p>
-          </div>
+    <section className="py-20 bg-muted/50">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl lg:text-4xl font-bold mb-4">Everything You Need to Start Coding</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Our platform provides all the tools and configurations you need to jump straight into development.
+          </p>
         </div>
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
-            <Card key={index} className="border-2 transition-all hover:border-primary/20 hover:shadow-md">
+            <Card key={index} className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader>
-                <div className="mb-2">{feature.icon}</div>
-                <CardTitle>{feature.title}</CardTitle>
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-xl">{feature.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-base">{feature.description}</CardDescription>

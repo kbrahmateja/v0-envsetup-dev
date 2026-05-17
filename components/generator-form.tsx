@@ -1,409 +1,197 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Loader2 } from "lucide-react"
+import { trackEnvironmentGeneration } from "@/lib/gtag"
+import { Bot } from "lucide-react"
+import Link from "next/link"
 
-const formSchema = z.object({
-  language: z.string({
-    required_error: "Please select a programming language.",
-  }),
-  framework: z.string({
-    required_error: "Please select a framework.",
-  }),
-  packageManager: z.string({
-    required_error: "Please select a package manager.",
-  }),
-  dependencies: z.array(z.string()).optional(),
-  environment: z.string({
-    required_error: "Please select an environment type.",
-  }),
-  devOps: z.array(z.string()).optional(),
-})
+const languages = [
+  { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "python", label: "Python" },
+  { value: "java", label: "Java" },
+  { value: "csharp", label: "C#" },
+  { value: "go", label: "Go" },
+  { value: "rust", label: "Rust" },
+  { value: "php", label: "PHP" },
+  { value: "ruby", label: "Ruby" },
+  { value: "swift", label: "Swift" },
+]
 
-export function GeneratorForm() {
+const frameworks = {
+  javascript: ["React", "Vue", "Angular", "Express", "Next.js", "Nuxt.js"],
+  typescript: ["React", "Vue", "Angular", "Express", "Next.js", "NestJS"],
+  python: ["Django", "Flask", "FastAPI", "Streamlit", "Jupyter"],
+  java: ["Spring Boot", "Spring MVC", "Quarkus", "Micronaut"],
+  csharp: [".NET Core", "ASP.NET", "Blazor", "MAUI"],
+  go: ["Gin", "Echo", "Fiber", "Chi"],
+  rust: ["Actix", "Rocket", "Warp", "Axum"],
+  php: ["Laravel", "Symfony", "CodeIgniter", "Slim"],
+  ruby: ["Rails", "Sinatra", "Hanami"],
+  swift: ["Vapor", "Perfect", "Kitura"],
+}
+
+const tools = [
+  { id: "docker", label: "Docker" },
+  { id: "git", label: "Git" },
+  { id: "eslint", label: "ESLint" },
+  { id: "prettier", label: "Prettier" },
+  { id: "jest", label: "Jest" },
+  { id: "cypress", label: "Cypress" },
+  { id: "husky", label: "Husky" },
+  { id: "github-actions", label: "GitHub Actions" },
+]
+
+export default function GeneratorForm() {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState("basic")
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      language: "",
-      framework: "",
-      packageManager: "",
-      dependencies: [],
-      environment: "docker",
-      devOps: [],
-    },
+  const [formData, setFormData] = useState({
+    projectName: "",
+    language: "",
+    framework: "",
+    description: "",
+    tools: [] as string[],
   })
 
-  const selectedLanguage = form.watch("language")
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
 
-  // Dynamic options based on selected language
-  const frameworkOptions = {
-    javascript: ["React", "Vue", "Angular", "Next.js", "Nuxt.js", "Express"],
-    typescript: ["React", "Vue", "Angular", "Next.js", "Nuxt.js", "NestJS"],
-    python: ["Django", "Flask", "FastAPI", "Pyramid"],
-    java: ["Spring Boot", "Quarkus", "Micronaut"],
-    go: ["Gin", "Echo", "Fiber"],
-    ruby: ["Rails", "Sinatra"],
-    php: ["Laravel", "Symfony", "CodeIgniter"],
+    // Track the environment generation
+    trackEnvironmentGeneration(formData.language, formData.framework)
+
+    // Navigate to results page with form data
+    const params = new URLSearchParams({
+      projectName: formData.projectName,
+      language: formData.language,
+      framework: formData.framework || "",
+      description: formData.description,
+      tools: formData.tools.join(","),
+    })
+
+    router.push(`/generator/results?${params.toString()}`)
   }
 
-  const packageManagerOptions = {
-    javascript: ["npm", "yarn", "pnpm"],
-    typescript: ["npm", "yarn", "pnpm"],
-    python: ["pip", "poetry", "pipenv"],
-    java: ["Maven", "Gradle"],
-    go: ["Go Modules"],
-    ruby: ["Bundler"],
-    php: ["Composer"],
-  }
-
-  const dependencyOptions = {
-    javascript: [
-      { id: "redux", label: "Redux" },
-      { id: "tailwindcss", label: "Tailwind CSS" },
-      { id: "axios", label: "Axios" },
-      { id: "lodash", label: "Lodash" },
-      { id: "styled-components", label: "Styled Components" },
-    ],
-    typescript: [
-      { id: "redux", label: "Redux" },
-      { id: "tailwindcss", label: "Tailwind CSS" },
-      { id: "axios", label: "Axios" },
-      { id: "zod", label: "Zod" },
-      { id: "react-query", label: "React Query" },
-    ],
-    python: [
-      { id: "requests", label: "Requests" },
-      { id: "sqlalchemy", label: "SQLAlchemy" },
-      { id: "pytest", label: "Pytest" },
-      { id: "pandas", label: "Pandas" },
-      { id: "celery", label: "Celery" },
-    ],
-    java: [
-      { id: "lombok", label: "Lombok" },
-      { id: "jackson", label: "Jackson" },
-      { id: "junit", label: "JUnit" },
-      { id: "hibernate", label: "Hibernate" },
-      { id: "spring-security", label: "Spring Security" },
-    ],
-    go: [
-      { id: "gorm", label: "GORM" },
-      { id: "jwt-go", label: "JWT Go" },
-      { id: "testify", label: "Testify" },
-      { id: "viper", label: "Viper" },
-      { id: "cobra", label: "Cobra" },
-    ],
-    ruby: [
-      { id: "devise", label: "Devise" },
-      { id: "rspec", label: "RSpec" },
-      { id: "sidekiq", label: "Sidekiq" },
-      { id: "pundit", label: "Pundit" },
-      { id: "faraday", label: "Faraday" },
-    ],
-    php: [
-      { id: "guzzle", label: "Guzzle" },
-      { id: "phpunit", label: "PHPUnit" },
-      { id: "carbon", label: "Carbon" },
-      { id: "passport", label: "Passport" },
-      { id: "sanctum", label: "Sanctum" },
-    ],
-  }
-
-  const devOpsOptions = [
-    { id: "github-actions", label: "GitHub Actions" },
-    { id: "gitlab-ci", label: "GitLab CI" },
-    { id: "circle-ci", label: "CircleCI" },
-    { id: "vercel", label: "Vercel Deployment" },
-    { id: "netlify", label: "Netlify Deployment" },
-    { id: "aws", label: "AWS Deployment" },
-    { id: "docker-compose", label: "Docker Compose" },
-    { id: "kubernetes", label: "Kubernetes" },
-  ]
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true)
-    console.log(values)
-
-    // Simulate API call to generate environment
-    setTimeout(() => {
-      setIsSubmitting(false)
-      // Navigate to results page with form data
-      router.push(`/generator/results?data=${encodeURIComponent(JSON.stringify(values))}`)
-    }, 2000)
+  const handleToolChange = (toolId: string, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      tools: checked ? [...prev.tools, toolId] : prev.tools.filter((t) => t !== toolId),
+    }))
   }
 
   return (
     <Card>
-      <CardContent className="pt-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">Basic Setup</TabsTrigger>
-            <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
-            <TabsTrigger value="deployment">Deployment</TabsTrigger>
-          </TabsList>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
-              <TabsContent value="basic" className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="language"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Programming Language</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value)
-                          // Reset dependent fields when language changes
-                          form.setValue("framework", "")
-                          form.setValue("packageManager", "")
-                          form.setValue("dependencies", [])
-                        }}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a language" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="javascript">JavaScript</SelectItem>
-                          <SelectItem value="typescript">TypeScript</SelectItem>
-                          <SelectItem value="python">Python</SelectItem>
-                          <SelectItem value="java">Java</SelectItem>
-                          <SelectItem value="go">Go</SelectItem>
-                          <SelectItem value="ruby">Ruby</SelectItem>
-                          <SelectItem value="php">PHP</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>The primary programming language for your project.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      <CardHeader>
+        <CardTitle>Project Configuration</CardTitle>
+        <CardDescription>
+          Tell us about your project and we'll generate the perfect development environment
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="projectName">Project Name</Label>
+              <Input
+                id="projectName"
+                placeholder="my-awesome-project"
+                value={formData.projectName}
+                onChange={(e) => setFormData((prev) => ({ ...prev, projectName: e.target.value }))}
+                required
+              />
+            </div>
 
-                {selectedLanguage && (
-                  <FormField
-                    control={form.control}
-                    name="framework"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Framework</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a framework" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {frameworkOptions[selectedLanguage as keyof typeof frameworkOptions]?.map((framework) => (
-                              <SelectItem key={framework} value={framework.toLowerCase()}>
-                                {framework}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>The framework you want to use with your language.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+            <div className="space-y-2">
+              <Label htmlFor="language">Programming Language</Label>
+              <Select
+                value={formData.language}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, language: value, framework: "" }))}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {formData.language && frameworks[formData.language as keyof typeof frameworks] && (
+            <div className="space-y-2">
+              <Label htmlFor="framework">Framework (Optional)</Label>
+              <Select
+                value={formData.framework}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, framework: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a framework" />
+                </SelectTrigger>
+                <SelectContent>
+                  {frameworks[formData.language as keyof typeof frameworks].map((framework) => (
+                    <SelectItem key={framework} value={framework.toLowerCase()}>
+                      {framework}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Project Description (Optional)</Label>
+            <Textarea
+              id="description"
+              placeholder="Describe your project..."
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <Label>Development Tools</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {tools.map((tool) => (
+                <div key={tool.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={tool.id}
+                    checked={formData.tools.includes(tool.id)}
+                    onCheckedChange={(checked) => handleToolChange(tool.id, checked as boolean)}
                   />
-                )}
-
-                {selectedLanguage && (
-                  <FormField
-                    control={form.control}
-                    name="packageManager"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Package Manager</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a package manager" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {packageManagerOptions[selectedLanguage as keyof typeof packageManagerOptions]?.map(
-                              (manager) => (
-                                <SelectItem key={manager} value={manager.toLowerCase()}>
-                                  {manager}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>The package manager to use for dependency management.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="environment"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Environment Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select environment type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="docker">Docker</SelectItem>
-                          <SelectItem value="devcontainer">VS Code Dev Container</SelectItem>
-                          <SelectItem value="gitpod">GitPod</SelectItem>
-                          <SelectItem value="local">Local Setup Script</SelectItem>
-                          <SelectItem value="cloud">Cloud-hosted Devbox</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>How you want your environment to be packaged.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end">
-                  <Button type="button" onClick={() => setActiveTab("dependencies")}>
-                    Next: Dependencies
-                  </Button>
+                  <Label htmlFor={tool.id} className="text-sm font-normal">
+                    {tool.label}
+                  </Label>
                 </div>
-              </TabsContent>
+              ))}
+            </div>
+          </div>
 
-              <TabsContent value="dependencies" className="space-y-6">
-                {selectedLanguage && (
-                  <FormField
-                    control={form.control}
-                    name="dependencies"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-4">
-                          <FormLabel>Dependencies</FormLabel>
-                          <FormDescription>Select the libraries and packages you want to include.</FormDescription>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {dependencyOptions[selectedLanguage as keyof typeof dependencyOptions]?.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="dependencies"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...(field.value || []), item.id])
-                                            : field.onChange(field.value?.filter((value) => value !== item.id))
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">{item.label}</FormLabel>
-                                  </FormItem>
-                                )
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setActiveTab("basic")}>
-                    Back: Basic Setup
-                  </Button>
-                  <Button type="button" onClick={() => setActiveTab("deployment")}>
-                    Next: Deployment
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="deployment" className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="devOps"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel>DevOps & Deployment</FormLabel>
-                        <FormDescription>Select CI/CD and deployment options to include.</FormDescription>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {devOpsOptions.map((item) => (
-                          <FormField
-                            key={item.id}
-                            control={form.control}
-                            name="devOps"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={item.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(item.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...(field.value || []), item.id])
-                                          : field.onChange(field.value?.filter((value) => value !== item.id))
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">{item.label}</FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setActiveTab("dependencies")}>
-                    Back: Dependencies
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      "Generate Environment"
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-            </form>
-          </Form>
-        </Tabs>
+          <div className="flex gap-3">
+            <Button type="submit" className="flex-1" size="lg">
+              Generate Environment
+            </Button>
+            <Button type="button" variant="outline" size="lg" asChild>
+              <Link href="/ai-assistant">
+                <Bot className="h-4 w-4 mr-2" />
+                Get AI Help
+              </Link>
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   )

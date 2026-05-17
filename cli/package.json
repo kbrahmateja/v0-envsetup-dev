@@ -1,0 +1,50 @@
+{
+  "name": "@envsetup/cli",
+  "version": "0.1.0-alpha",
+  "type": "module",
+  "description": "Standardize your development environments with AI-powered orchestration.",
+  "main": "./dist/index.js",
+  "bin": {
+    "envsetup": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbrahmateja/v0-envsetup-dev.git"
+  },
+  "keywords": [
+    "envsetup",
+    "cli",
+    "devops",
+    "docker",
+    "nextjs",
+    "automation",
+    "environment",
+    "setup"
+  ],
+  "author": "envsetup.dev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kbrahmateja/v0-envsetup-dev/issues"
+  },
+  "homepage": "https://envsetup.dev",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/index.js",
+    "dev": "tsc -w"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.3.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3"
+  }
+}

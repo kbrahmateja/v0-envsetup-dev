@@ -1,27 +1,54 @@
-# EnvSetup.dev
+# envsetup.dev 🚀
 
-EnvSetup.dev is a web application that allows developers to generate customized, ready-to-use development environments for various programming languages, frameworks, and configurations. It provides pre-built templates, DevOps integration, and environment previews to streamline the development process.
+**Standardize your development environments with AI-powered orchestration.**
 
-## Features
+`envsetup.dev` replaces manual, error-prone `setup.sh` scripts and inconsistent Docker configs with a powerful, modern CLI and an AI-driven platform.
 
-- **Template Library**: Choose from pre-built templates like MERN Stack, Next.js + Tailwind, Django + PostgreSQL, and more.
-- **Environment Generator**: Automatically generate environment files like `Dockerfile`, `.devcontainer.json`, or `docker-compose.yml`.
-- **DevOps Integration**: Supports CI/CD pipelines with GitHub Actions, GitLab CI, and Docker Compose.
-- **Environment Preview**: View generated files and configurations before downloading.
-- **Responsive Design**: Fully responsive and mobile-friendly.
+[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/fSuP1nkcamn)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.0.1--alpha-orange?style=for-the-badge)](./cli)
 
-## Getting Started
+## 🌟 Key Features
 
-### Prerequisites
+- **Standardized Environments**: Generate production-ready Docker setups for any stack (Next.js, FastAPI, Go, Express).
+- **Interactive Wizard**: A beautiful, modern CLI experience to initialize your projects in seconds.
+- **AI Recommendation Engine**: (Coming Soon) Let AI find the perfect tools and versions for your specific project needs.
+- **Unified Orchestration**: Manage your entire project lifecycle (Dev, Sync, Deploy) through a single tool.
 
-- Node.js (v18 or later)
-- npm or yarn
-- Docker (optional, for Docker-based environments)
+---
 
-### Installation
+## 🛠️ Getting Started with the CLI
 
-1. Clone the repository:
+The core of `envsetup.dev` is our global CLI. To get started locally:
 
+1. **Install globally from NPM**:
    ```bash
-   git clone https://github.com/your-username/envsetup.git
-   cd envsetup
+   npm install -g @envsetup/cli@alpha
+   ```
+
+2. **Initialize your first project**:
+   ```bash
+   envsetup init
+   ```
+
+---
+
+## 📁 Project Structure
+
+- `/app`: The web platform (Next.js 15) for managing architectures and analytics.
+- `/components`: Premium UI components powered by Tailwind CSS and Framer Motion.
+- `/cli`: The source code for the `@envsetup/cli` tool.
+- `/lib`: Shared utilities and database logic.
+
+---
+
+## 🚀 Roadmap
+
+- [x] CLI Foundation & Interactive Wizard
+- [x] Presentation & Strategy Deck
+- [ ] **Phase 2**: Expanded Framework Templates (Java, Ruby, Rust)
+- [ ] **Phase 3**: `envsetup doctor` for local system health checks
+- [ ] **Phase 4**: MCP (Model Context Protocol) Server for AI Agent integration
+
+---
+
+Built with ❤️ by the envsetup.dev team.

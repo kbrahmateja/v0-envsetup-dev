@@ -1,10 +1,31 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import { useEffect } from "react"
 
 export default function TemplatesPage() {
+  // Add specific templates page tracking
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.plausible) {
+      window.plausible('Templates Page Visit')
+    }
+  }, [])
+
+  // Function to track template selection
+  const trackTemplateSelection = (templateName: string) => {
+    if (typeof window !== 'undefined' && window.plausible) {
+      window.plausible('Template Selected', {
+        props: {
+          templateName: templateName
+        }
+      })
+    }
+  }
+
   const templates = [
     {
       name: "MERN Stack",
@@ -98,7 +119,7 @@ export default function TemplatesPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button asChild className="w-full">
+              <Button asChild className="w-full" onClick={() => trackTemplateSelection(template.name)}>
                 <Link
                   href={{
                     pathname: "/generator",
