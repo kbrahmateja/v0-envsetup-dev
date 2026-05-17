@@ -17,7 +17,7 @@ export default async function VisitorsPage() {
         COUNT(*) FILTER (WHERE visited_at > NOW() - INTERVAL '24 hours')::int as today
       FROM visitors
     `
-    stats = result
+    stats = result as { total: number; unique_visitors: number; today: number }[]
   } catch (error) {
     console.error("Error fetching visitor stats:", error)
   }

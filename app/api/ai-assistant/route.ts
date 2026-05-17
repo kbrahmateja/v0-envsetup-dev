@@ -1,7 +1,6 @@
 import { streamText, tool } from "ai"
 import { z } from "zod"
 
-// Model selector — Groq (free) preferred, fallback to OpenAI
 async function getModel() {
   if (process.env.GROQ_API_KEY) {
     const { createGroq } = await import("@ai-sdk/groq")
@@ -44,9 +43,7 @@ const softwareDatabase = {
     { name: "Kubernetes", versions: ["1.29"], use: "Orchestration" },
     { name: "Nginx", versions: ["1.25"], use: "Web server" },
   ],
-} as const
-
-type Category = keyof typeof softwareDatabase
+}
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
@@ -57,7 +54,6 @@ export async function POST(req: Request) {
     system: `You are an expert DevOps consultant for envsetup.dev.
 Help users set up development environments by asking about their project, then calling generateEnvironmentConfig.`,
     messages,
-    toolCallStreaming: true,
     maxSteps: 10,
     tools: {
       searchSoftware: tool({
@@ -66,11 +62,11 @@ Help users set up development environments by asking about their project, then c
           category: z.enum(["languages", "databases", "frameworks", "tools"]),
           query: z.string().optional(),
         }),
-        execute: async ({ category, query }: { category: Category; query?: string }) => {
-          const items = softwareDatabase[category] as readonly Record<string, unknown>[]
+        execute: async ({ category, query }) => {
+          const items = softwareDatabase[category] as Array<Record<string, unknown>>
           if (query) {
             return items.filter((item) =>
-              (item.name as string).toLowerCase().includes(query.toLowerCase())
+              String(item.name).toLowerCase().includes(query.toLowerCase())
             )
           }
           return items
@@ -94,10 +90,10 @@ Help users set up development environments by asking about their project, then c
           software: z.string(),
           useCase: z.string().optional(),
         }),
-        execute: async ({ software }: { software: string }) => {
+        execute: async ({ software }) => {
           for (const category of Object.values(softwareDatabase)) {
-            const found = (category as readonly Record<string, unknown>[]).find(
-              (item) => (item.name as string).toLowerCase() === software.toLowerCase()
+            const found = (category as Array<Record<string, unknown>>).find(
+              (item) => String(item.name).toLowerCase() === software.toLowerCase()
             )
             if (found) {
               const versions = found.versions as string[]
@@ -110,5 +106,5 @@ Help users set up development environments by asking about their project, then c
     },
   })
 
-  return result.toUIMessageStreamResponse()
+  return result.toDataStreamResponse()
 }

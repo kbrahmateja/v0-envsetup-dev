@@ -16,7 +16,7 @@ export function AIAssistantChat() {
   const [envConfig, setEnvConfig] = useState<EnvironmentConfig | null>(null)
   const [showDeployment, setShowDeployment] = useState(false)
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, setInput, handleSubmit, status } = useChat({
     api: "/api/ai-assistant",
     maxSteps: 10,
     async onToolCall({ toolCall }) {
@@ -141,7 +141,7 @@ export function AIAssistantChat() {
                 </div>
               ))}
 
-              {isLoading && (
+              {status === "streaming" && (
                 <div className="flex gap-3 justify-start">
                   <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                     <Bot className="h-4 w-4 text-primary-foreground" />
@@ -202,13 +202,13 @@ export function AIAssistantChat() {
             <div className="flex gap-2">
               <Input
                 value={input}
-                onChange={handleInputChange}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Describe your project requirements..."
-                disabled={isLoading}
+                disabled={status === "streaming"}
                 className="flex-1"
               />
-              <Button type="submit" size="icon" disabled={isLoading || !input || input.trim().length === 0}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <Button type="submit" size="icon" disabled={status === "streaming" || !input || input.trim().length === 0}>
+                {status === "streaming" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </form>
