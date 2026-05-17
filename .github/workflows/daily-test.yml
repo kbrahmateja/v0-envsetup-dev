@@ -138,7 +138,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install CLI deps
-        run: cd cli && npm ci
+        run: cd cli && npm install
       - name: Build CLI
         run: cd cli && npm run build
       - name: Test CLI doctor (non-interactive)
