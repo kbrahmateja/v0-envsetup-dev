@@ -26,6 +26,7 @@ export default function Header() {
           <Link href="/" className="flex items-center space-x-2">
             <Code className="h-6 w-6" />
             <span className="font-bold text-xl">EnvSetup.dev</span>
+            <span className="text-xs font-medium px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-700 border border-violet-200">Beta</span>
           </Link>
 
           {/* Desktop Navigation */}

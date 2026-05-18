@@ -1,8 +1,8 @@
 {
   "name": "@envsetup/cli",
-  "version": "0.1.0-alpha",
+  "version": "0.2.0-beta",
   "type": "module",
-  "description": "Standardize your development environments with AI-powered orchestration.",
+  "description": "Generate dev environments for 23+ frameworks \u2014 Dockerfile, docker-compose, .env in seconds.",
   "main": "./dist/index.js",
   "bin": {
     "envsetup": "./dist/index.js"
