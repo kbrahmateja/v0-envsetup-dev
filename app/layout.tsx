@@ -1,4 +1,5 @@
 import type React from "react"
+import type { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Inter } from "next/font/google"
 import "./globals.css"
@@ -13,9 +14,39 @@ import Footer from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "EnvSetup.dev - Generate Development Environments",
-  description: "Generate customized, ready-to-use development environments for any programming language or framework.",
+export const metadata: Metadata = {
+  metadataBase: new URL("https://envsetup.dev"),
+  title: {
+    default: "EnvSetup.dev — Generate Dev Environments in Seconds",
+    template: "%s | EnvSetup.dev",
+  },
+  description: "Generate production-ready development environments for any language or framework. Dockerfile, docker-compose, .env — all auto-generated. Used by 10k+ developers.",
+  keywords: ["development environment", "docker", "dockerfile", "devcontainer", "next.js", "fastapi", "django", "spring boot", "go", "rust", "dev setup generator"],
+  authors: [{ name: "EnvSetup.dev", url: "https://envsetup.dev" }],
+  creator: "EnvSetup.dev",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://envsetup.dev",
+    siteName: "EnvSetup.dev",
+    title: "EnvSetup.dev — Generate Dev Environments in Seconds",
+    description: "Production-ready Dockerfiles, docker-compose, and .env files generated for 300+ framework + database combinations.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "EnvSetup.dev" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EnvSetup.dev — Generate Dev Environments in Seconds",
+    description: "300+ templates. AI-powered. Dockerized. Free.",
+    images: ["/og-image.png"],
+    creator: "@envsetupdev",
+  },
+  robots: {
+    index: true, follow: true,
+    googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  verification: {
+    google: "add-google-search-console-token-here",
+  },
 }
 
 export default function RootLayout({
