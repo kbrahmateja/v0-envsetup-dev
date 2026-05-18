@@ -59,21 +59,11 @@ export function AIAssistantChat() {
         const { done, value } = await reader.read()
         if (done) break
         const chunk = decoder.decode(value)
-        // Parse AI SDK text stream format (0:"text")
-        const lines = chunk.split("\n").filter(Boolean)
-        for (const line of lines) {
-          if (line.startsWith('0:"')) {
-            try {
-              const text = JSON.parse(line.slice(2))
-              assistantContent += text
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: assistantContent } : m))
-              )
-            } catch {
-              // ignore parse errors
-            }
-          }
-        }
+        // Plain text stream
+        assistantContent += chunk
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: assistantContent } : m))
+        )
       }
     } catch (error) {
       setMessages((prev) => [
