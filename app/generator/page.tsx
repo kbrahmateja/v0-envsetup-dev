@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import GeneratorForm from "@/components/generator-form"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,7 +39,9 @@ export default function GeneratorPage() {
           </CardContent>
         </Card>
 
-        <GeneratorForm />
+        <Suspense fallback={<div className="h-96 flex items-center justify-center text-muted-foreground">Loading generator...</div>}>
+          <GeneratorForm />
+        </Suspense>
       </div>
     </div>
   )
