@@ -31,13 +31,13 @@ export const metadata: Metadata = {
     siteName: "EnvSetup.dev",
     title: "EnvSetup.dev — Generate Dev Environments in Seconds",
     description: "Production-ready Dockerfiles, docker-compose, and .env files generated for 300+ framework + database combinations.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "EnvSetup.dev" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "EnvSetup.dev — Generate Dev Environments in Seconds" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "EnvSetup.dev — Generate Dev Environments in Seconds",
     description: "300+ templates. AI-powered. Dockerized. Free.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
     creator: "@envsetupdev",
   },
   robots: {

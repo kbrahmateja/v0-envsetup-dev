@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Check } from "lucide-react"
 import { trackPricingView } from "@/lib/gtag"
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 const plans = [
   {
@@ -50,22 +51,29 @@ export default function PricingPage() {
     trackPricingView()
   }, [])
 
+  const router = useRouter()
+
   const handlePlanClick = (planName: string) => {
     trackPricingView(planName.toLowerCase())
+    if (planName === "Free") {
+      router.push("/generator")
+    } else {
+      router.push(`/waitlist?plan=${planName.toLowerCase()}`)
+    }
   }
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
+          <h1 className="text-4xl font-bold mb-4">Free — Always</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Choose the plan that fits your needs. All plans include our core features with no hidden fees.
+            EnvSetup.dev is completely free to use. Pro and Team plans are coming soon.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
+          {plans.filter(p => p.name === "Free").map((plan, index) => (
             <Card key={index} className={`relative ${plan.popular ? "border-primary shadow-lg scale-105" : ""}`}>
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">Most Popular</Badge>
@@ -100,6 +108,13 @@ export default function PricingPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Coming soon */}
+        <div className="mt-12 p-6 border border-dashed rounded-xl text-center max-w-2xl mx-auto">
+          <p className="text-sm font-medium text-muted-foreground mb-1">🚀 Pro & Team plans — coming soon</p>
+          <p className="text-sm text-muted-foreground mb-4">Unlimited environments, GitHub integration, team features, priority support.</p>
+          <a href="/waitlist" className="text-sm text-primary hover:underline font-medium">Join the waitlist → get 3 months free when we launch</a>
         </div>
 
         <div className="text-center mt-16">
