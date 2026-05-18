@@ -37,7 +37,7 @@ const knowledge = [
 
 export const maxDuration = 30
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS knowledge_base (
