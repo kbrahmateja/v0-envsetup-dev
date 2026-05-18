@@ -78,7 +78,7 @@ export async function initCommand(options: { ai?: boolean }) {
         text({
           message: 'Project name?',
           placeholder: 'my-awesome-app',
-          validate: (v) => (!v ? 'Project name is required' : undefined),
+          validate: (v: string) => (!v ? 'Project name is required' : undefined),
         }),
 
       stack: () =>

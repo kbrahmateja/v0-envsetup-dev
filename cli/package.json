@@ -1,6 +1,6 @@
 {
   "name": "@envsetup/cli",
-  "version": "0.2.0-beta",
+  "version": "0.3.1",
   "type": "module",
   "description": "Generate dev environments for 23+ frameworks \u2014 Dockerfile, docker-compose, .env in seconds.",
   "main": "./dist/index.js",
@@ -11,10 +11,6 @@
     "dist",
     "README.md"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kbrahmateja/v0-envsetup-dev.git"
-  },
   "keywords": [
     "envsetup",
     "cli",
@@ -27,9 +23,6 @@
   ],
   "author": "envsetup.dev",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/kbrahmateja/v0-envsetup-dev/issues"
-  },
   "homepage": "https://envsetup.dev",
   "scripts": {
     "build": "tsc",

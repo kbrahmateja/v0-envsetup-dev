@@ -72,8 +72,9 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="flex justify-center">
           {plans.filter(p => p.name === "Free").map((plan, index) => (
+          <div key={index} className="w-full max-w-md">
             <Card key={index} className={`relative ${plan.popular ? "border-primary shadow-lg scale-105" : ""}`}>
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">Most Popular</Badge>
@@ -107,6 +108,7 @@ export default function PricingPage() {
                 </Button>
               </CardContent>
             </Card>
+          </div>
           ))}
         </div>
 

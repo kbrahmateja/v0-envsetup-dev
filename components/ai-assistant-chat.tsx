@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, type FormEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Bot, User, Loader2, Send, Download, Cloud, ArrowRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { EnvironmentConfig } from "@/lib/deployment-config"
@@ -23,11 +22,20 @@ export function AIAssistantChat() {
   const [isLoading, setIsLoading] = useState(false)
   const [envConfig, setEnvConfig] = useState<EnvironmentConfig | null>(null)
   const [showDeployment, setShowDeployment] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  // Scroll to bottom of chat area (not window)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    // Scroll inside the chat container, not the page
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    scrollToBottom()
+  }, [messages, isLoading])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -41,21 +49,24 @@ export function AIAssistantChat() {
     setIsLoading(true)
 
     try {
+      // Only send role + content (clean format for API)
+      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }))
+
       const res = await fetch("/api/ai-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map(({ role, content }) => ({ role, content }))
-        }),
+        body: JSON.stringify({ messages: apiMessages }),
       })
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`)
+      }
 
       const data = await res.json()
       const reply: Message = {
         id: String(Date.now() + 1),
         role: "assistant",
-        content: data.message || "Sorry, something went wrong."
+        content: data.message ?? "Sorry, I couldn't generate a response. Please try again.",
       }
       setMessages([...newMessages, reply])
     } catch (err) {
@@ -63,7 +74,7 @@ export function AIAssistantChat() {
       setMessages([...newMessages, {
         id: String(Date.now() + 1),
         role: "assistant",
-        content: "Sorry, I couldn't connect. Please try again."
+        content: "Connection issue. Please check your internet and try again.",
       }])
     } finally {
       setIsLoading(false)
@@ -91,37 +102,43 @@ export function AIAssistantChat() {
 
   return (
     <>
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader>
+      <Card className="flex flex-col" style={{ height: "600px" }}>
+        <CardHeader className="flex-shrink-0">
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" /> AI Environment Assistant
           </CardTitle>
           <CardDescription>Tell me about your project and I&apos;ll help you set up the perfect environment</CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-          <ScrollArea className="flex-1 px-6">
+
+        <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+          {/* Scrollable chat area — fixed height, internal scroll only */}
+          <div
+            ref={scrollAreaRef}
+            className="flex-1 overflow-y-auto px-6 min-h-0"
+            style={{ overscrollBehavior: "contain" }}
+          >
             <div className="space-y-4 py-4">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-sm">Start by telling me about your project!</p>
-                  <p className="text-xs mt-2">e.g. &quot;I&apos;m building a web app with React and PostgreSQL&quot;</p>
+                  <p className="text-xs mt-2">e.g. &quot;I need a Spring Boot API with PostgreSQL&quot;</p>
                 </div>
               )}
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   {msg.role === "assistant" && (
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
                       <Bot className="h-4 w-4 text-primary-foreground" />
                     </div>
                   )}
-                  <div className={`rounded-lg px-4 py-2 max-w-[80%] text-sm whitespace-pre-wrap ${
+                  <div className={`rounded-lg px-4 py-2 max-w-[80%] text-sm whitespace-pre-wrap break-words ${
                     msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                   }`}>
                     {msg.content}
                   </div>
                   {msg.role === "user" && (
-                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
                       <User className="h-4 w-4" />
                     </div>
                   )}
@@ -129,20 +146,21 @@ export function AIAssistantChat() {
               ))}
               {isLoading && (
                 <div className="flex gap-3 justify-start">
-                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
                     <Bot className="h-4 w-4 text-primary-foreground" />
                   </div>
-                  <div className="rounded-lg px-4 py-2 bg-muted flex items-center">
+                  <div className="rounded-lg px-4 py-3 bg-muted flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">Thinking...</span>
                   </div>
                 </div>
               )}
-              <div ref={bottomRef} />
+              <div ref={chatEndRef} />
             </div>
-          </ScrollArea>
+          </div>
 
           {envConfig && (
-            <div className="px-6 pb-2">
+            <div className="px-6 pb-2 flex-shrink-0">
               <Card className="bg-accent/50">
                 <CardContent className="pt-4 flex items-center justify-between gap-4">
                   <div>
@@ -153,6 +171,11 @@ export function AIAssistantChat() {
                     <Button size="sm" onClick={handleDownload}>
                       <Download className="h-4 w-4 mr-1" /> ZIP
                     </Button>
+                    {envConfig.serverType !== "local" && (
+                      <Button size="sm" variant="outline" onClick={() => setShowDeployment(true)}>
+                        <Cloud className="h-4 w-4 mr-1" /> Deploy
+                      </Button>
+                    )}
                     <Button size="sm" variant="secondary"
                       onClick={() => router.push(`/generator?language=${envConfig.language}`)}>
                       <ArrowRight className="h-4 w-4 mr-1" /> Generator
@@ -163,13 +186,15 @@ export function AIAssistantChat() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="px-6 pb-6 pt-2 flex gap-2">
+          {/* Input — fixed at bottom, never scrolls */}
+          <form onSubmit={handleSubmit} className="px-6 pb-4 pt-2 flex gap-2 flex-shrink-0 border-t">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your project requirements..."
+              placeholder="Describe your project..."
               disabled={isLoading}
               className="flex-1"
+              autoComplete="off"
             />
             <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
