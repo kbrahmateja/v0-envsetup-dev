@@ -46,13 +46,14 @@ export async function GET(_req: Request) {
         tags TEXT[] NOT NULL DEFAULT '{}',
         title VARCHAR(200) NOT NULL,
         content TEXT NOT NULL,
-        search_vector TSVECTOR GENERATED ALWAYS AS (
-          to_tsvector('english', title || ' ' || content || ' ' || array_to_string(tags, ' '))
-        ) STORED,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `
-    await sql`CREATE INDEX IF NOT EXISTS idx_kb_fts ON knowledge_base USING GIN(search_vector)`
+    // Functional GIN index — no generated column needed
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_kb_fts ON knowledge_base
+      USING GIN(to_tsvector('english', title || ' ' || content))
+    `
     await sql`CREATE INDEX IF NOT EXISTS idx_kb_tags ON knowledge_base USING GIN(tags)`
 
     for (const item of knowledge) {

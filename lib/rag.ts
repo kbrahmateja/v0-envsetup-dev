@@ -22,9 +22,13 @@ export async function searchKnowledge(query: string, limit = 4): Promise<Knowled
         content,
         category,
         tags,
-        ts_rank(search_vector, plainto_tsquery('english', ${query})) AS rank
+        ts_rank(
+          to_tsvector('english', title || ' ' || content),
+          plainto_tsquery('english', ${query})
+        ) AS rank
       FROM knowledge_base
-      WHERE search_vector @@ plainto_tsquery('english', ${query})
+      WHERE to_tsvector('english', title || ' ' || content)
+            @@ plainto_tsquery('english', ${query})
       ORDER BY rank DESC
       LIMIT ${limit}
     ` as KnowledgeChunk[]
