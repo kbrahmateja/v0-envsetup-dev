@@ -23,53 +23,48 @@ export function AIAssistantChat() {
   const [isLoading, setIsLoading] = useState(false)
   const [envConfig, setEnvConfig] = useState<EnvironmentConfig | null>(null)
   const [showDeployment, setShowDeployment] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" })
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    const text = input.trim()
+    if (!text || isLoading) return
 
-    const userMessage: Message = { id: Date.now().toString(), role: "user", content: input.trim() }
-    const updatedMessages = [...messages, userMessage]
-    setMessages(updatedMessages)
+    const userMsg: Message = { id: String(Date.now()), role: "user", content: text }
+    const newMessages = [...messages, userMsg]
+    setMessages(newMessages)
     setInput("")
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/ai-assistant", {
+      const res = await fetch("/api/ai-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages.map(({ role, content }) => ({ role, content })) }),
+        body: JSON.stringify({
+          messages: newMessages.map(({ role, content }) => ({ role, content }))
+        }),
       })
 
-      if (!response.ok) throw new Error("API error")
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let assistantContent = ""
-      const assistantId = (Date.now() + 1).toString()
-
-      setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }])
-
-      while (reader) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value)
-        // Plain text stream
-        assistantContent += chunk
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: assistantContent } : m))
-        )
+      const data = await res.json()
+      const reply: Message = {
+        id: String(Date.now() + 1),
+        role: "assistant",
+        content: data.message || "Sorry, something went wrong."
       }
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now().toString(), role: "assistant", content: "Sorry, something went wrong. Please try again." },
-      ])
+      setMessages([...newMessages, reply])
+    } catch (err) {
+      console.error("Chat error:", err)
+      setMessages([...newMessages, {
+        id: String(Date.now() + 1),
+        role: "assistant",
+        content: "Sorry, I couldn't connect. Please try again."
+      }])
     } finally {
       setIsLoading(false)
     }
@@ -113,28 +108,36 @@ export function AIAssistantChat() {
                   <p className="text-xs mt-2">e.g. &quot;I&apos;m building a web app with React and PostgreSQL&quot;</p>
                 </div>
               )}
-              {messages.map((message) => (
-                <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {message.role === "assistant" && (
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.role === "assistant" && (
                     <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                       <Bot className="h-4 w-4 text-primary-foreground" />
                     </div>
                   )}
                   <div className={`rounded-lg px-4 py-2 max-w-[80%] text-sm whitespace-pre-wrap ${
-                    message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                    msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                   }`}>
-                    {message.content || (isLoading && message.role === "assistant" && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ))}
+                    {msg.content}
                   </div>
-                  {message.role === "user" && (
+                  {msg.role === "user" && (
                     <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                       <User className="h-4 w-4" />
                     </div>
                   )}
                 </div>
               ))}
-              <div ref={scrollRef} />
+              {isLoading && (
+                <div className="flex gap-3 justify-start">
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <Bot className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <div className="rounded-lg px-4 py-2 bg-muted flex items-center">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
             </div>
           </ScrollArea>
 
@@ -150,9 +153,6 @@ export function AIAssistantChat() {
                     <Button size="sm" onClick={handleDownload}>
                       <Download className="h-4 w-4 mr-1" /> ZIP
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowDeployment(true)}>
-                      <Cloud className="h-4 w-4 mr-1" /> Deploy
-                    </Button>
                     <Button size="sm" variant="secondary"
                       onClick={() => router.push(`/generator?language=${envConfig.language}`)}>
                       <ArrowRight className="h-4 w-4 mr-1" /> Generator
@@ -163,7 +163,7 @@ export function AIAssistantChat() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="px-6 pb-6 flex gap-2">
+          <form onSubmit={handleSubmit} className="px-6 pb-6 pt-2 flex gap-2">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
