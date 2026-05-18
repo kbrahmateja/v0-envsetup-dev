@@ -118,7 +118,12 @@ function ResultsContent() {
               <Github className="h-4 w-4" />
               Push to GitHub
             </Button>
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+            <Button variant="outline" className="flex items-center gap-2 bg-transparent"
+              onClick={() => {
+                const cmd = `npx @envsetup/cli init --name ${projectData.projectName} --language ${projectData.language}`
+                navigator.clipboard.writeText(cmd)
+                alert("CLI command copied!\n\n" + cmd)
+              }}>
               <Terminal className="h-4 w-4" />
               Copy CLI Command
             </Button>

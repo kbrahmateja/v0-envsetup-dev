@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -54,13 +54,38 @@ const tools = [
 
 export default function GeneratorForm() {
   const router = useRouter()
-  const [formData, setFormData] = useState({
-    projectName: "",
-    language: "",
-    framework: "",
-    description: "",
-    tools: [] as string[],
-  })
+  const searchParams = useSearchParams()
+  
+  // Pre-fill from URL params (from templates page or AI assistant)
+  const getInitialData = () => {
+    const templateParam = searchParams?.get("template")
+    if (templateParam) {
+      try {
+        const t = JSON.parse(decodeURIComponent(templateParam))
+        const langMap: Record<string, string> = {
+          "JavaScript": "javascript", "TypeScript": "typescript", "Python": "python",
+          "Java": "java", "Go": "go", "PHP": "php", "Ruby": "ruby"
+        }
+        const firstTag = t.tags?.[0] || ""
+        return {
+          projectName: t.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
+          language: langMap[firstTag] || searchParams?.get("language") || "",
+          framework: t.tags?.[1]?.toLowerCase() || searchParams?.get("framework") || "",
+          description: t.description || "",
+          tools: [] as string[],
+        }
+      } catch { /* ignore */ }
+    }
+    return {
+      projectName: searchParams?.get("projectName") || "",
+      language: searchParams?.get("language") || "",
+      framework: searchParams?.get("framework") || "",
+      description: searchParams?.get("description") || "",
+      tools: [] as string[],
+    }
+  }
+
+  const [formData, setFormData] = useState(getInitialData)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
