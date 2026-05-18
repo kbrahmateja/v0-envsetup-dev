@@ -1,14 +1,4 @@
-export interface DeploymentConfig {
-  serverType: "cloud" | "dedicated" | "local"
-  provider?: string
-  region?: string
-  instanceType?: string
-  credentials?: {
-    host?: string
-    username?: string
-    sshKey?: string
-  }
-}
+import { getDockerImage, getPackageManager, getVersionInfo, dbVersions } from "./versions"
 
 export interface EnvironmentConfig {
   projectName: string
@@ -18,191 +8,324 @@ export interface EnvironmentConfig {
   tools: string[]
   serverType: "cloud" | "dedicated" | "local"
   description?: string
-  deployment?: DeploymentConfig
 }
 
+// ─── Dockerfile Generator ────────────────────────────────────────────────────
+export function generateDockerfile(config: EnvironmentConfig): string {
+  const lang = config.language.toLowerCase()
+  const fw = config.framework?.toLowerCase() ?? ""
+  const baseImage = getDockerImage(lang, fw)
+  const pm = getPackageManager(lang, fw)
+  const info = getVersionInfo(lang, fw)
+
+  if (lang === "javascript" || lang === "typescript") {
+    const isBun = baseImage.includes("bun")
+    if (isBun) {
+      return `FROM oven/bun:1-alpine
+WORKDIR /app
+COPY package*.json bun.lockb ./
+RUN bun install --frozen-lockfile
+COPY . .
+EXPOSE 3000
+CMD ["bun", "run", "start"]
+`
+    }
+    const buildStep = fw.includes("next") || fw.includes("remix") || fw.includes("svelte") || fw.includes("nuxt") || fw.includes("astro")
+      ? `RUN ${pm} run build\nEXPOSE 3000\nCMD ["${pm}", "run", "start"]`
+      : `EXPOSE 3000\nCMD ["node", "src/index.js"]`
+    return `FROM ${baseImage}
+WORKDIR /app
+COPY package*.json ./
+RUN ${pm} ci --only=production
+COPY . .
+${buildStep}
+`
+  }
+
+  if (lang === "python") {
+    const cmd = fw.includes("fastapi") || fw.includes("starlette") || fw.includes("litestar")
+      ? 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]'
+      : fw.includes("django")
+      ? 'CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]'
+      : fw.includes("flask")
+      ? 'CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000"]'
+      : 'CMD ["python", "main.py"]'
+    return `FROM ${baseImage}
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+${cmd}
+`
+  }
+
+  if (lang === "java" || lang === "kotlin") {
+    const isGradle = pm === "gradle"
+    return `FROM ${baseImage} AS builder
+WORKDIR /app
+COPY ${isGradle ? "build.gradle* settings.gradle* gradlew gradlew.bat" : "pom.xml"} ./
+${isGradle ? "COPY gradle gradle\nRUN ./gradlew dependencies --no-daemon" : "RUN mvn dependency:go-offline -B"}
+COPY src ./src
+RUN ${isGradle ? "./gradlew bootJar --no-daemon" : "mvn package -DskipTests"}
+
+FROM eclipse-temurin:${info?.languageVersion ?? "21"}-jre-alpine
+WORKDIR /app
+COPY --from=builder /app/${isGradle ? "build/libs/*.jar" : "target/*.jar"} app.jar
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
+`
+  }
+
+  if (lang === "go") {
+    return `FROM ${baseImage} AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/main.go
+
+FROM alpine:3.19
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+EXPOSE 8080
+CMD ["./main"]
+`
+  }
+
+  if (lang === "rust") {
+    return `FROM ${baseImage} AS builder
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release && rm -f target/release/deps/app*
+COPY . .
+RUN cargo build --release
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/target/release/app /usr/local/bin/
+EXPOSE 8080
+CMD ["app"]
+`
+  }
+
+  if (lang === "php") {
+    return `FROM ${baseImage}
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql
+WORKDIR /var/www/html
+COPY composer.json composer.lock ./
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN composer install --no-dev --optimize-autoloader
+COPY . .
+RUN chown -R www-data:www-data /var/www/html
+EXPOSE 9000
+CMD ["php-fpm"]
+`
+  }
+
+  if (lang === "ruby") {
+    return `FROM ${baseImage}
+WORKDIR /app
+COPY Gemfile Gemfile.lock ./
+RUN bundle config --global frozen 1 && bundle install
+COPY . .
+EXPOSE 3000
+CMD ${fw.includes("rails") ? '["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]' : '["bundle", "exec", "ruby", "app.rb"]'}
+`
+  }
+
+  if (lang === "csharp") {
+    return `FROM ${baseImage} AS build
+WORKDIR /src
+COPY *.csproj ./
+RUN dotnet restore
+COPY . .
+RUN dotnet build -c Release -o /app/build
+RUN dotnet publish -c Release -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "app.dll"]
+`
+  }
+
+  if (lang === "elixir") {
+    return `FROM ${baseImage} AS builder
+WORKDIR /app
+ENV MIX_ENV=prod
+COPY mix.exs mix.lock ./
+RUN mix local.hex --force && mix local.rebar --force
+RUN mix deps.get --only prod
+COPY . .
+RUN mix compile
+RUN mix phx.digest 2>/dev/null || true
+RUN mix release
+
+FROM elixir:${info?.languageVersion ?? "1.16"}-alpine
+WORKDIR /app
+COPY --from=builder /app/_build/prod/rel/app ./
+EXPOSE 4000
+CMD ["./bin/app", "start"]
+`
+  }
+
+  // Generic fallback
+  return `FROM ${baseImage}
+WORKDIR /app
+COPY . .
+EXPOSE 8080
+CMD ["/bin/sh", "-c", "echo 'Configure CMD for your app'"]
+`
+}
+
+// ─── docker-compose.yml Generator ───────────────────────────────────────────
 export function generateDockerCompose(config: EnvironmentConfig): string {
-  const services: string[] = []
+  const port = ["java", "kotlin", "csharp", "go", "rust", "elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000
+  const dbServices: string[] = []
+  const depends: string[] = []
+  const envVars: string[] = []
 
-  // Add application service
-  services.push(`  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    depends_on:
-${config.databases.map((db) => `      - ${db.toLowerCase()}`).join("\n")}`)
-
-  // Add database services
   config.databases.forEach((db) => {
-    if (db.toLowerCase().includes("postgres")) {
-      services.push(`  postgres:
-    image: postgres:16
+    const key = db.toLowerCase().replace(/[^a-z]/g, "")
+    const dbInfo = dbVersions[key]
+    if (!dbInfo || !dbInfo.image) return // embedded DBs (sqlite, h2) need no service
+
+    depends.push(key)
+    const envEntries = Object.entries(dbInfo.envVars)
+      .map(([k, v]) => `      - ${k}=${v.replace("${PROJECT_NAME}", config.projectName)}`)
+      .join("\n")
+
+    const healthCheck = dbInfo.healthCheck
+      ? `\n    healthcheck:\n      test: ["CMD", "sh", "-c", "${dbInfo.healthCheck}"]\n      interval: 10s\n      retries: 5`
+      : ""
+
+    dbServices.push(`  ${key}:
+    image: ${dbInfo.image}
+    restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: ${config.projectName}
+${envEntries}
     ports:
-      - "5432:5432"
+      - "${dbInfo.port}:${dbInfo.port}"
     volumes:
-      - postgres_data:/var/lib/postgresql/data`)
-    } else if (db.toLowerCase().includes("mongodb")) {
-      services.push(`  mongodb:
-    image: mongo:7.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db`)
-    } else if (db.toLowerCase().includes("redis")) {
-      services.push(`  redis:
-    image: redis:7.2
-    ports:
-      - "6379:6379"`)
+      - ${key}_data:/var/lib/${key === "postgres" ? "postgresql/data" : key === "mysql" ? "mysql" : key}${healthCheck}`)
+
+    // Connection string env vars for app
+    if (key === "postgres") {
+      envVars.push(`      - DATABASE_URL=postgresql://postgres:password@postgres:5432/${config.projectName}`)
+    } else if (key === "mysql") {
+      envVars.push(`      - DATABASE_URL=mysql://app:password@mysql:3306/${config.projectName}`)
+    } else if (key === "mongodb") {
+      envVars.push(`      - DATABASE_URL=mongodb://root:password@mongodb:27017/${config.projectName}?authSource=admin`)
+    } else if (key === "redis") {
+      envVars.push(`      - REDIS_URL=redis://redis:6379`)
     }
   })
 
-  return `version: '3.8'
+  const volumes = depends.length > 0
+    ? `\nvolumes:\n${depends.map(d => `  ${d}_data:`).join("\n")}`
+    : ""
+
+  const dependsSection = depends.length > 0
+    ? `\n    depends_on:\n${depends.map(d => `      ${d}:\n        condition: service_healthy`).join("\n")}`
+    : ""
+
+  return `version: '3.9'
 
 services:
-${services.join("\n\n")}
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${port}:${port}"
+    environment:
+      - NODE_ENV=production
+${envVars.join("\n")}${dependsSection}
 
-volumes:
-${config.databases
-  .map((db) => {
-    if (db.toLowerCase().includes("postgres")) return "  postgres_data:"
-    if (db.toLowerCase().includes("mongodb")) return "  mongo_data:"
-    return null
+${dbServices.join("\n\n")}${volumes}
+`
+}
+
+// ─── .env.example Generator ─────────────────────────────────────────────────
+export function generateEnvExample(config: EnvironmentConfig): string {
+  const lines: string[] = [
+    `# ${config.projectName} — Environment Variables`,
+    `# Copy to .env and fill in your values`,
+    "",
+    "# App",
+    "NODE_ENV=development",
+    `PORT=${["java","kotlin","csharp","go","rust","elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000}`,
+    "",
+  ]
+
+  config.databases.forEach((db) => {
+    const key = db.toLowerCase().replace(/[^a-z]/g, "")
+    if (key === "postgres" || key === "supabase") {
+      lines.push("# Database (PostgreSQL)", `DATABASE_URL=postgresql://postgres:password@localhost:5432/${config.projectName}`, "")
+    } else if (key === "mysql") {
+      lines.push("# Database (MySQL)", `DATABASE_URL=mysql://app:password@localhost:3306/${config.projectName}`, "")
+    } else if (key === "mongodb") {
+      lines.push("# Database (MongoDB)", `DATABASE_URL=mongodb://localhost:27017/${config.projectName}`, "")
+    } else if (key === "redis") {
+      lines.push("# Cache (Redis)", "REDIS_URL=redis://localhost:6379", "")
+    } else if (key === "sqlite") {
+      lines.push("# Database (SQLite)", "DATABASE_URL=file:./dev.db", "")
+    } else if (key === "sqlserver") {
+      lines.push("# Database (SQL Server)", `DATABASE_URL=Server=localhost,1433;Database=${config.projectName};User Id=sa;Password=Password123!`, "")
+    }
   })
-  .filter(Boolean)
-  .join("\n")}`
+
+  lines.push("# Secrets", "SECRET_KEY=change_me_in_production", "JWT_SECRET=change_me_in_production")
+  return lines.join("\n")
 }
 
-export function generateDeploymentScript(config: EnvironmentConfig): string {
-  const { serverType, deployment } = config
-
-  if (serverType === "cloud") {
-    return `#!/bin/bash
-# Cloud Deployment Script for ${config.projectName}
-
-echo "Deploying to ${deployment?.provider || "cloud provider"}..."
-
-# Build Docker image
-docker build -t ${config.projectName}:latest .
-
-# Push to container registry
-docker tag ${config.projectName}:latest registry.example.com/${config.projectName}:latest
-docker push registry.example.com/${config.projectName}:latest
-
-# Deploy to cloud
-kubectl apply -f k8s/deployment.yaml
-
-echo "Deployment complete!"
-`
-  } else if (serverType === "dedicated") {
-    return `#!/bin/bash
-# Dedicated Server Deployment Script for ${config.projectName}
-
-HOST="${deployment?.credentials?.host || "your-server.com"}"
-USER="${deployment?.credentials?.username || "deploy"}"
-
-echo "Deploying to dedicated server $HOST..."
-
-# Copy files to server
-rsync -avz --exclude 'node_modules' ./ $USER@$HOST:/var/www/${config.projectName}/
-
-# SSH and run deployment
-ssh $USER@$HOST << 'ENDSSH'
-cd /var/www/${config.projectName}
-docker-compose down
-docker-compose up -d --build
-ENDSSH
-
-echo "Deployment complete!"
-`
-  } else {
-    return `#!/bin/bash
-# Local Setup Script for ${config.projectName}
-
-echo "Setting up local environment..."
-
-# Start services with Docker Compose
-docker-compose up -d
-
-# Install dependencies
-npm install
-
-# Run database migrations
-npm run migrate
-
-echo "Local environment ready! Access at http://localhost:3000"
-`
-  }
-}
-
+// ─── README Generator ────────────────────────────────────────────────────────
 export function generateReadme(config: EnvironmentConfig): string {
+  const info = getVersionInfo(config.language, config.framework ?? "")
+  const pm = getPackageManager(config.language, config.framework ?? "")
+
+  const prereqs = [
+    "Docker & Docker Compose",
+    info ? `${config.language.charAt(0).toUpperCase() + config.language.slice(1)} ${info.languageVersion}` : null,
+    config.framework ? `${config.framework} ${info?.frameworkVersion ?? ""}` : null,
+  ].filter(Boolean).map(p => `- ${p}`).join("\n")
+
   return `# ${config.projectName}
 
-${config.description || "A development environment setup"}
+> Generated by [EnvSetup.dev](https://envsetup.dev)
 
-## Technology Stack
+## Stack
+- **Language**: ${config.language} ${info?.languageVersion ?? ""}
+- **Framework**: ${config.framework ?? "none"} ${info?.frameworkVersion ?? ""}
+- **Databases**: ${config.databases.join(", ") || "none"}
+${info?.notes ? `\n> ⚠️ ${info.notes}\n` : ""}
 
-- **Language**: ${config.language}
-${config.framework ? `- **Framework**: ${config.framework}` : ""}
-- **Databases**: ${config.databases.join(", ")}
-- **Tools**: ${config.tools.join(", ")}
-
-## Deployment Type
-
-**${config.serverType.charAt(0).toUpperCase() + config.serverType.slice(1)}** deployment
+## Prerequisites
+${prereqs}
 
 ## Quick Start
 
-### Prerequisites
+\`\`\`bash
+# 1. Clone and setup
+cp .env.example .env
 
-${config.tools.map((tool) => `- ${tool}`).join("\n")}
+# 2. Start with Docker
+docker compose up -d
 
-### Installation
+# 3. Install dependencies
+${pm === "npm" ? "npm install" : pm === "pip" ? "pip install -r requirements.txt" : pm === "maven" ? "mvn install" : pm === "gradle" ? "./gradlew build" : pm === "cargo" ? "cargo build" : pm === "composer" ? "composer install" : pm === "bundler" ? "bundle install" : pm === "mix" ? "mix deps.get" : pm + " install"}
 
-1. Clone this repository
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
+# 4. Run development server
+${pm === "npm" ? "npm run dev" : pm === "pip" ? "uvicorn main:app --reload" : pm === "maven" ? "mvn spring-boot:run" : pm === "gradle" ? "./gradlew bootRun" : pm === "cargo" ? "cargo run" : pm === "composer" ? "php artisan serve" : pm === "bundler" ? "bundle exec rails server" : pm === "mix" ? "mix phx.server" : pm + " run dev"}
+\`\`\`
 
-3. Start services:
-   \`\`\`bash
-   docker-compose up -d
-   \`\`\`
-
-4. Run the application:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-
-## Deployment
-
-${
-  config.serverType === "local"
-    ? "This environment is configured for local development only."
-    : `Run the deployment script:
+## Generated by EnvSetup.dev CLI
 
 \`\`\`bash
-chmod +x deploy.sh
-./deploy.sh
-\`\`\``
-}
-
-## Environment Variables
-
-Create a \`.env\` file with the following variables:
-
+npx @envsetup/cli init
 \`\`\`
-DATABASE_URL=your_database_url
-API_KEY=your_api_key
-\`\`\`
-
-## Support
-
-For issues and questions, please open an issue in this repository.
 `
 }

@@ -8,6 +8,7 @@ import { PageTracker } from "@/components/analytics/page-tracker"
 import { VisitorTracker } from "@/components/visitor-tracker"
 import { Suspense } from "react"
 import Header from "@/components/header"
+import { VersionsBanner } from "@/components/versions-banner"
 import Footer from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -42,6 +43,7 @@ export default function RootLayout({
           </Suspense>
           <VisitorTracker />
           <div className="flex min-h-screen flex-col">
+            <VersionsBanner />
             <Header />
             <main className="flex-1">
               {children}
