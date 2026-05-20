@@ -48,8 +48,8 @@ export default function HeroSection() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-primary mb-2">50+</div>
-              <div className="text-muted-foreground">Languages & Frameworks</div>
+              <div className="text-3xl font-bold text-primary mb-2">322+</div>
+              <div className="text-muted-foreground">Templates &amp; Stacks</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-primary mb-2">10k+</div>

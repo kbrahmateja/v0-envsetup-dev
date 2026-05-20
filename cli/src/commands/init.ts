@@ -1,4 +1,5 @@
 import { group, text, select, multiselect, confirm, isCancel, cancel, spinner, intro, outro, note } from '@clack/prompts'
+import { ideOptions, cicdOptions, testingOptions, qualityOptions, getRecommended } from '../data/recommendations.js'
 import pc from 'picocolors'
 import { generateTemplates } from '../utils/templates.js'
 
@@ -249,7 +250,43 @@ async function manualFlow(base: any) {
   const cloud = await select({ message: 'Deploy target?', options: CLOUDS }) as string
   if (isCancel(cloud)) { cancel('Cancelled'); process.exit(0) }
 
-  // 7. Extra tools
+  // 7. IDE recommendation
+  const langKey = beLang as string
+  const ideList = ideOptions[langKey] ?? ideOptions.typescript
+  const ideChoices = ideList.map(o => ({
+    value: o.value,
+    label: o.label + (o.recommended ? pc.green(' ★ Recommended') : ''),
+    hint: o.hint,
+  }))
+  const ide = await select({ message: 'Preferred IDE?', options: ideChoices }) as string
+  if (isCancel(ide)) { cancel('Cancelled'); process.exit(0) }
+
+  // 8. CI/CD
+  const cicd = await select({
+    message: 'CI/CD pipeline?',
+    options: cicdOptions.map(o => ({
+      value: o.value,
+      label: o.label + (o.recommended ? pc.green(' ★ Recommended') : ''),
+      hint: o.hint,
+    })),
+  }) as string
+  if (isCancel(cicd)) { cancel('Cancelled'); process.exit(0) }
+
+  // 9. Testing tools
+  const testList = testingOptions[langKey] ?? testingOptions.typescript
+  const testing = await multiselect({
+    message: 'Testing tools? (space to select, ★ = recommended)',
+    options: testList.map(o => ({
+      value: o.value,
+      label: o.label + (o.recommended ? pc.green(' ★') : ''),
+      hint: o.hint,
+    })),
+    initialValues: getRecommended(testList),
+    required: false,
+  }) as string[]
+  if (isCancel(testing)) { cancel('Cancelled'); process.exit(0) }
+
+  // 10. Extra tools
   const tools = await multiselect({
     message: 'Additional tools? (space to select)',
     options: [
@@ -279,6 +316,9 @@ async function manualFlow(base: any) {
   const proceed = await confirm({ message: 'Generate files?' })
   if (isCancel(proceed) || !proceed) { cancel('Cancelled'); process.exit(0) }
 
+  const devopsTools = toolList.filter((t: string) => ['github-actions','devcontainer'].includes(t))
+  if (cicd !== 'none' && !devopsTools.includes(cicd)) devopsTools.push(cicd)
+
   return {
     ...base,
     appType,
@@ -290,7 +330,9 @@ async function manualFlow(base: any) {
     framework: beFramework,
     database,
     cloud,
-    tools: toolList.filter(t => !['github-actions','devcontainer'].includes(t)),
-    devops: toolList.filter(t => ['github-actions','devcontainer'].includes(t)),
+    ide,
+    testing: (testing ?? []) as string[],
+    tools: toolList.filter((t: string) => !['github-actions','devcontainer'].includes(t)),
+    devops: devopsTools,
   }
 }

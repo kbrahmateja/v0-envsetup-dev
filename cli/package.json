@@ -1,6 +1,6 @@
 {
   "name": "@envsetup/cli",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "type": "module",
   "description": "Generate dev environments for 23+ frameworks — Dockerfile, docker-compose, .env in seconds.",
   "main": "./dist/index.js",

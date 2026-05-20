@@ -19,7 +19,7 @@ const features = [
   },
   {
     icon: Code,
-    title: "50+ Languages",
+    title: "21+ Languages",
     description: "Support for all major programming languages and frameworks.",
   },
   {

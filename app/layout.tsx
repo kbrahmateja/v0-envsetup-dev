@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     default: "EnvSetup.dev — Generate Dev Environments in Seconds",
     template: "%s | EnvSetup.dev",
   },
-  description: "Generate production-ready development environments for any language or framework. Dockerfile, docker-compose, .env — all auto-generated. Used by 10k+ developers.",
+  description: "Generate production-ready development environments for any language or framework. 322+ templates across 21 languages. Dockerfile, docker-compose, .env — all auto-generated. Free forever.",
   keywords: ["development environment", "docker", "dockerfile", "devcontainer", "next.js", "fastapi", "django", "spring boot", "go", "rust", "dev setup generator"],
   authors: [{ name: "EnvSetup.dev", url: "https://envsetup.dev" }],
   creator: "EnvSetup.dev",
