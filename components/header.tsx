@@ -15,6 +15,7 @@ export default function Header() {
     { name: "Generator", href: "/generator" },
     { name: "AI Assistant", href: "/ai-assistant" },
     { name: "Templates", href: "/templates" },
+    { name: "Stacks", href: "/stacks" },
     { name: "Pricing", href: "/pricing" },
   ]
 
