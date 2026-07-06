@@ -1,7 +1,10 @@
 // @ts-nocheck
 import { generateText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
+import { type NextRequest, NextResponse } from "next/server"
+import { randomUUID } from "crypto"
 import { searchKnowledge, buildContext, extractQuery } from "@/lib/rag"
+import { sql } from "@/lib/db"
 
 function getModel() {
   if (process.env.GROQ_API_KEY) {
@@ -42,15 +45,122 @@ function smartFallback(messages: { role: string; content: string }[], context: s
   return `I can help set up your dev environment! Tell me:\n\n1. **Language** — Java, Python, Go, TypeScript, Rust, PHP, Ruby?\n2. **Framework** — Spring Boot, FastAPI, NestJS, Gin?\n3. **Database** — PostgreSQL, MySQL, MongoDB?\n4. **Architecture** — Monolith, Microservices?\n\nOr run interactively: \`npx @envsetup/cli init\` 🚀`
 }
 
+// ─────────────────────────────────────────
+// Rate limiting: free tier gets 1 new AI conversation *session* per day and
+// 3 per week (per IP address OR per browser, whichever is more restrictive).
+// A session is only counted once, on its first message — every follow-up
+// message in an already-approved conversation is always allowed, so the
+// limit never interrupts a conversation mid-way.
+// ─────────────────────────────────────────
+const DAILY_SESSION_LIMIT = 1
+const WEEKLY_SESSION_LIMIT = 3
+const AI_UID_COOKIE = "ai_uid"
+
+async function checkRateLimit(sessionId: string, ip: string, cookieId: string) {
+  try {
+    const existing = await sql`SELECT 1 FROM ai_assistant_usage WHERE session_id = ${sessionId} LIMIT 1`
+    if (existing.length > 0) {
+      // Continuing an already-approved conversation.
+      return { allowed: true, alreadyRecorded: true }
+    }
+
+    const [daily, weekly] = await Promise.all([
+      sql`
+        SELECT COUNT(*)::int AS count FROM ai_assistant_usage
+        WHERE (ip_address = ${ip} OR cookie_id = ${cookieId}) AND created_at > NOW() - INTERVAL '1 day'
+      `,
+      sql`
+        SELECT COUNT(*)::int AS count FROM ai_assistant_usage
+        WHERE (ip_address = ${ip} OR cookie_id = ${cookieId}) AND created_at > NOW() - INTERVAL '7 days'
+      `,
+    ])
+
+    const dailyCount = daily[0]?.count ?? 0
+    const weeklyCount = weekly[0]?.count ?? 0
+
+    if (dailyCount >= DAILY_SESSION_LIMIT || weeklyCount >= WEEKLY_SESSION_LIMIT) {
+      return { allowed: false, alreadyRecorded: false }
+    }
+
+    return { allowed: true, alreadyRecorded: false }
+  } catch (err) {
+    // If the usage table or DB isn't reachable, don't break the whole feature — allow it.
+    console.error("AI rate limit check failed, allowing request:", err)
+    return { allowed: true, alreadyRecorded: true }
+  }
+}
+
+async function recordSession(sessionId: string, ip: string, cookieId: string) {
+  try {
+    await sql`
+      INSERT INTO ai_assistant_usage (session_id, ip_address, cookie_id)
+      VALUES (${sessionId}, ${ip}, ${cookieId})
+      ON CONFLICT (session_id) DO NOTHING
+    `
+  } catch (err) {
+    console.error("Failed to record AI usage session:", err)
+  }
+}
+
 export const maxDuration = 45
 
-export async function POST(req: Request) {
+const MAX_CHARS_PER_MESSAGE = 500
+
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const messages = (body.messages ?? []).slice(-8)
+    const messages = (body.messages ?? []).slice(-8).map((m: { role: string; content: unknown }) => ({
+      ...m,
+      content: typeof m.content === "string" ? m.content.slice(0, MAX_CHARS_PER_MESSAGE) : m.content,
+    }))
+    const sessionId: string | undefined =
+      typeof body.sessionId === "string" && body.sessionId.length > 0 ? body.sessionId.slice(0, 64) : undefined
+
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      req.headers.get("x-real-ip") ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown"
+
+    let cookieId = req.cookies.get(AI_UID_COOKIE)?.value
+    const isNewCookie = !cookieId
+    if (!cookieId) cookieId = randomUUID()
+
+    const withCookie = (res: NextResponse) => {
+      if (isNewCookie) {
+        res.cookies.set(AI_UID_COOKIE, cookieId!, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 24 * 365,
+          path: "/",
+        })
+      }
+      return res
+    }
 
     if (!messages.length) {
-      return Response.json({ message: "Hi! Tell me about your project and I'll help set up the perfect dev environment. What language/framework are you using?" })
+      return withCookie(
+        NextResponse.json({
+          message: "Hi! Tell me about your project and I'll help set up the perfect dev environment. What language/framework are you using?",
+        }),
+      )
+    }
+
+    if (sessionId) {
+      const { allowed, alreadyRecorded } = await checkRateLimit(sessionId, ip, cookieId)
+      if (!allowed) {
+        return withCookie(
+          NextResponse.json({
+            message:
+              "You've used up today's free AI conversations (1/day, 3/week). Come back later, or skip the chat — the generator already knows hundreds of stacks: envsetup.dev/generator or `npx @envsetup/cli init`.",
+            rateLimited: true,
+          }),
+        )
+      }
+      if (!alreadyRecorded) {
+        await recordSession(sessionId, ip, cookieId)
+      }
     }
 
     // RAG: search knowledge base for relevant context
@@ -59,6 +169,7 @@ export async function POST(req: Request) {
     const context = buildContext(chunks)
 
     const model = getModel()
+    let responsePayload: { message: string } | null = null
 
     if (model) {
       try {
@@ -82,25 +193,28 @@ Guidelines:
         })
 
         if (text?.trim()) {
-          return Response.json({ message: text })
+          responsePayload = { message: text }
         }
       } catch (aiErr) {
         console.error("LLM failed, using RAG fallback:", aiErr)
       }
     }
 
-    // RAG-enhanced fallback: use retrieved context even without LLM
-    if (chunks.length > 0) {
-      const topChunk = chunks[0]
-      return Response.json({
-        message: `Based on your request:\n\n**${topChunk.title}**\n${topChunk.content}\n\n→ Generate your environment: \`npx @envsetup/cli init\` or [envsetup.dev/generator](https://envsetup.dev/generator)`
-      })
+    if (!responsePayload) {
+      // RAG-enhanced fallback: use retrieved context even without LLM
+      if (chunks.length > 0) {
+        const topChunk = chunks[0]
+        responsePayload = {
+          message: `Based on your request:\n\n**${topChunk.title}**\n${topChunk.content}\n\n→ Generate your environment: \`npx @envsetup/cli init\` or [envsetup.dev/generator](https://envsetup.dev/generator)`,
+        }
+      } else {
+        responsePayload = { message: smartFallback(messages, context) }
+      }
     }
 
-    return Response.json({ message: smartFallback(messages, context) })
-
+    return withCookie(NextResponse.json(responsePayload))
   } catch (err) {
     console.error("Route error:", err)
-    return Response.json({ message: smartFallback([], "") })
+    return NextResponse.json({ message: smartFallback([], "") })
   }
 }

@@ -15,16 +15,35 @@ interface Message {
   content: string
 }
 
+const MAX_MESSAGES = 20
+const WARNING_THRESHOLD = 2
+const MAX_CHARS_PER_MESSAGE = 500
+
+function makeSessionId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 export function AIAssistantChat() {
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isRateLimited, setIsRateLimited] = useState(false)
   const [envConfig, setEnvConfig] = useState<EnvironmentConfig | null>(null)
   const [showDeployment, setShowDeployment] = useState(false)
+  // One id per conversation (resets on page reload) — lets the server count this
+  // as a single "session" against the daily/weekly free-tier limit.
+  const sessionIdRef = useRef<string>("")
+  if (!sessionIdRef.current) sessionIdRef.current = makeSessionId()
   // Scroll to bottom of chat area (not window)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  const messagesRemaining = MAX_MESSAGES - messages.length
+  const isConversationFull = messagesRemaining <= 0
+  const showLengthWarning = messagesRemaining > 0 && messagesRemaining <= WARNING_THRESHOLD
+  const isInputDisabled = isLoading || isConversationFull || isRateLimited
 
   const scrollToBottom = () => {
     // Scroll inside the chat container, not the page
@@ -39,8 +58,8 @@ export function AIAssistantChat() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    const text = input.trim()
-    if (!text || isLoading) return
+    const text = input.trim().slice(0, MAX_CHARS_PER_MESSAGE)
+    if (!text || isLoading || isConversationFull || isRateLimited) return
 
     const userMsg: Message = { id: String(Date.now()), role: "user", content: text }
     const newMessages = [...messages, userMsg]
@@ -55,7 +74,7 @@ export function AIAssistantChat() {
       const res = await fetch("/api/ai-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, sessionId: sessionIdRef.current }),
       })
 
       if (!res.ok) {
@@ -63,6 +82,7 @@ export function AIAssistantChat() {
       }
 
       const data = await res.json()
+      if (data.rateLimited) setIsRateLimited(true)
       const reply: Message = {
         id: String(Date.now() + 1),
         role: "assistant",
@@ -186,19 +206,50 @@ export function AIAssistantChat() {
             </div>
           )}
 
+          {isRateLimited && (
+            <div className="px-6 pb-2 flex-shrink-0">
+              <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+                You&apos;ve reached today&apos;s free AI conversation limit. Try the generator directly at{" "}
+                <span className="font-medium">envsetup.dev/generator</span> — no AI needed for known stacks.
+              </p>
+            </div>
+          )}
+          {!isRateLimited && isConversationFull && (
+            <div className="px-6 pb-2 flex-shrink-0">
+              <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+                This conversation has reached its {MAX_MESSAGES}-message limit. Reload the page to start a new one.
+              </p>
+            </div>
+          )}
+          {!isRateLimited && showLengthWarning && (
+            <div className="px-6 pb-2 flex-shrink-0">
+              <p className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 rounded-md px-3 py-2">
+                Heads up: only {messagesRemaining} message{messagesRemaining === 1 ? "" : "s"} left in this conversation.
+              </p>
+            </div>
+          )}
+
           {/* Input — fixed at bottom, never scrolls */}
-          <form onSubmit={handleSubmit} className="px-6 pb-4 pt-2 flex gap-2 flex-shrink-0 border-t">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your project..."
-              disabled={isLoading}
-              className="flex-1"
-              autoComplete="off"
-            />
-            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+          <form onSubmit={handleSubmit} className="px-6 pb-4 pt-2 flex flex-col gap-1 flex-shrink-0 border-t">
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value.slice(0, MAX_CHARS_PER_MESSAGE))}
+                placeholder={isConversationFull ? "Conversation limit reached" : "Describe your project..."}
+                disabled={isInputDisabled}
+                maxLength={MAX_CHARS_PER_MESSAGE}
+                className="flex-1"
+                autoComplete="off"
+              />
+              <Button type="submit" size="icon" disabled={isInputDisabled || !input.trim()}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+            {input.length > MAX_CHARS_PER_MESSAGE * 0.8 && (
+              <span className="text-[10px] text-muted-foreground self-end">
+                {input.length}/{MAX_CHARS_PER_MESSAGE}
+              </span>
+            )}
           </form>
         </CardContent>
       </Card>
