@@ -30,6 +30,7 @@ jobs:
         env:
           DATABASE_URL: "postgresql://test:test@localhost/test"
           ADMIN_PASSWORD: "ci-test-password"
+          ADMIN_SESSION_SECRET: "ci-test-session-secret"
 
   # ─────────────────────────────────────────
   # Job 3: Core API Tests
@@ -37,11 +38,81 @@ jobs:
   api-tests:
     name: 🧪 API Route Tests
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://test:test@localhost/test"
+      ADMIN_USERNAME: "admin"
+      ADMIN_PASSWORD: "ci-test-password"
+      ADMIN_SESSION_SECRET: "ci-test-session-secret"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - name: Build
+        run: npm run build
+      - name: Start server in background
+        run: npx next start -p 3000 &
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:3000/; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server did not become ready in time"
+          exit 1
+
+      - name: Homepage returns 200
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/)
+          echo "GET / -> $code"
+          [ "$code" = "200" ]
+
+      - name: Generator page returns 200
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/generator)
+          echo "GET /generator -> $code"
+          [ "$code" = "200" ]
+
+      - name: Unauthenticated protected admin API is rejected (401)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/admin/newsletters)
+          echo "GET /api/admin/newsletters (no session) -> $code"
+          [ "$code" = "401" ]
+
+      - name: Unauthenticated admin page redirects to login
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/admin/dashboard)
+          echo "GET /admin/dashboard (no session) -> $code"
+          [ "$code" -ge "300" ] && [ "$code" -lt "400" ]
+
+      - name: Login rejects wrong credentials (401)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/admin/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"wrong-password"}')
+          echo "Bad login -> $code"
+          [ "$code" = "401" ]
+
+      - name: Login accepts correct credentials and issues a session that clears the admin API gate
+        run: |
+          resp=$(curl -s -i -X POST http://localhost:3000/api/admin/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"ci-test-password"}')
+          echo "$resp" | grep -q "HTTP/1.1 200" || (echo "Login did not return 200" && echo "$resp" && exit 1)
+          cookie=$(echo "$resp" | tr -d '\r' | grep -i "^set-cookie:" | sed -n 's/.*admin_session=\([^;]*\).*/\1/p')
+          if [ -z "$cookie" ]; then echo "No admin_session cookie set on login" && exit 1; fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/admin/newsletters -H "Cookie: admin_session=$cookie")
+          echo "GET /api/admin/newsletters (with session) -> $code"
+          # Must NOT be 401 (middleware must let it through) — 500 is acceptable here since
+          # there's no real database in CI, we're only asserting the auth gate, not the DB call.
+          [ "$code" != "401" ]
+
       - name: Check critical files exist
         run: |
           files=(
@@ -68,6 +139,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+
+      - name: Dependency vulnerability audit (high/critical fails the build)
+        run: npm audit --audit-level=high
+
       - name: Check no hardcoded secrets
         run: |
           FOUND=0
@@ -91,7 +171,7 @@ jobs:
             echo "✅ No API keys in code"
           fi
 
-          # Check 3: auth.ts uses env variable (not hardcoded)
+          # Check 3: auth.ts uses env variables (not hardcoded)
           if grep -q "process.env.ADMIN_PASSWORD" lib/auth.ts; then
             echo "✅ auth.ts uses env variable"
           else
@@ -99,7 +179,15 @@ jobs:
             FOUND=1
           fi
 
-          # Check 4: .env.local not committed
+          # Check 4: session tokens are signed (not the old Math.random() generator)
+          if grep -q "crypto.subtle" lib/auth.ts; then
+            echo "✅ auth.ts signs session tokens"
+          else
+            echo "❌ auth.ts does not appear to sign session tokens!"
+            FOUND=1
+          fi
+
+          # Check 5: .env.local not committed
           if [ -f ".env.local" ]; then
             echo "❌ .env.local committed — remove it!"
             FOUND=1
@@ -124,11 +212,19 @@ jobs:
         run: cd cli && npm install
       - name: Build CLI
         run: cd cli && npm run build
-      - name: Test CLI doctor (non-interactive)
+      - name: CLI doctor must not crash (default stack)
         run: |
           cd cli
-          timeout 10 node dist/index.js doctor || true
-          echo "✅ CLI doctor ran without crash"
+          timeout 10 node dist/index.js doctor
+          echo "✅ CLI doctor ran without crash (default)"
+      - name: CLI doctor must not crash (representative stacks)
+        run: |
+          cd cli
+          for stack in nextjs fastapi springboot; do
+            echo "--- doctor --stack $stack ---"
+            timeout 10 node dist/index.js doctor --stack "$stack"
+          done
+          echo "✅ CLI doctor ran without crash across stacks"
       - name: Check CLI version
         run: |
           VERSION=$(node -e "console.log(require('./cli/package.json').version)")
