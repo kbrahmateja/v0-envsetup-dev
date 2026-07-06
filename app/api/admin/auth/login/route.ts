@@ -1,12 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { verifyCredentials, generateSessionToken } from "@/lib/auth"
+import { verifyCredentials, createSessionToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { username, password } = body
-
-    console.log("Login attempt for username:", username)
 
     if (!username || !password) {
       return NextResponse.json({ error: "Username and password required" }, { status: 400 })
@@ -14,13 +12,11 @@ export async function POST(request: NextRequest) {
 
     // Verify credentials
     if (!verifyCredentials(username, password)) {
-      console.log("Invalid credentials for username:", username)
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    // Generate session token
-    const token = generateSessionToken()
-    console.log("Session token generated:", token)
+    // Generate a signed, expiring session token
+    const token = await createSessionToken(username)
 
     // Create response with session cookie
     const response = NextResponse.json({ success: true, message: "Login successful" })
@@ -33,7 +29,6 @@ export async function POST(request: NextRequest) {
       path: "/",
     })
 
-    console.log("Login successful, cookie set")
     return response
   } catch (error) {
     console.error("Login error:", error)

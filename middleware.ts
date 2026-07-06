@@ -1,34 +1,35 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { verifySessionToken } from "@/lib/auth"
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Check if accessing admin routes (except login page and auth API)
-  if (pathname.startsWith("/admin")) {
-    // Allow login page and auth API
-    if (pathname === "/admin/login" || pathname.startsWith("/api/admin/auth")) {
-      return NextResponse.next()
+  const isAdminArea = pathname.startsWith("/admin") || pathname.startsWith("/api/admin")
+  if (!isAdminArea) {
+    return NextResponse.next()
+  }
+
+  // Allow the login page and the auth endpoints themselves through unauthenticated.
+  const isAuthRoute = pathname === "/admin/login" || pathname.startsWith("/api/admin/auth")
+  if (isAuthRoute) {
+    return NextResponse.next()
+  }
+
+  const session = request.cookies.get("admin_session")?.value
+  const isValid = await verifySessionToken(session)
+
+  if (!isValid) {
+    if (pathname.startsWith("/api/admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
-    // Check for admin session cookie
-    const session = request.cookies.get("admin_session")
-
-    console.log("Middleware check for path:", pathname, "Session exists:", !!session)
-
-    if (!session) {
-      // Redirect to login if no session
-      console.log("No session found, redirecting to login")
-      const loginUrl = new URL("/admin/login", request.url)
-      return NextResponse.redirect(loginUrl)
-    }
-
-    console.log("Session found, allowing access")
+    const loginUrl = new URL("/admin/login", request.url)
+    return NextResponse.redirect(loginUrl)
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 }

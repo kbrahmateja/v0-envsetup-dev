@@ -77,23 +77,22 @@ The admin dashboard is now fully configured and ready to use at `/admin` route.
 The system uses **Brevo (Sendinblue)** for sending emails:
 
 1. **Current Configuration**:
-   - Sender: info@swiftstrikesolutions.com
+   - Sender: info@envsetup.dev (domain verified in Brevo — SPF/DKIM/DMARC authenticated)
    - Admin notifications: kbrahmateja@gmail.com
    - Free tier: 300 emails/day
-
-2. **To Update Domain**:
-   - Verify envsetup.dev domain in Brevo
-   - Update sender email in API routes
-   - Test email delivery
 
 ## Security Notes
 
 ### Authentication
-- **Current**: No authentication (development mode)
-- **Production**: Add authentication before deployment
-  - Recommended: Use Stack Auth (already integrated)
-  - Or implement custom admin login
-  - Protect `/admin/*` routes with middleware
+- **Current**: Username/password login (`ADMIN_USERNAME`/`ADMIN_PASSWORD`) issues a signed,
+  expiring session cookie (HMAC-SHA256 via `lib/auth.ts`). `middleware.ts` verifies the
+  signature on every request to `/admin/*` and `/api/admin/*` (except the login/check/logout
+  endpoints themselves) — a valid-looking cookie alone is not enough, it must verify.
+- There is no per-user accounts system — this is a single shared admin credential, not
+  suitable if multiple people need distinct logins/audit trails.
+- Set `ADMIN_SESSION_SECRET` in production (falls back to `ADMIN_PASSWORD` if unset).
+- Note: "Stack Auth" was previously listed here as "already integrated" — that was inaccurate,
+  no such integration exists in this codebase.
 
 ### Environment Variables Required
 \`\`\`
@@ -146,13 +145,12 @@ Or execute in the v0 preview to create tables automatically.
 
 ## Next Steps
 
-1. **Add Authentication**: Protect admin routes with login
-2. **Email Templates**: Create rich HTML email templates
-3. **Export Features**: Add CSV export for subscribers
-4. **Advanced Analytics**: Add more detailed visitor insights
-5. **Scheduled Sends**: Add scheduling for newsletters
-6. **A/B Testing**: Test different email subjects
-7. **Segmentation**: Create subscriber segments
+1. **Email Templates**: Create rich HTML email templates
+2. **Export Features**: Add CSV export for subscribers
+3. **Advanced Analytics**: Add more detailed visitor insights
+4. **Scheduled Sends**: Add scheduling for newsletters
+5. **A/B Testing**: Test different email subjects
+6. **Segmentation**: Create subscriber segments
 
 ## Support
 
