@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import Script from "next/script"
+import { Analytics } from "@vercel/analytics/react"
 import { PageTracker } from "@/components/analytics/page-tracker"
 import { VisitorTracker } from "@/components/visitor-tracker"
 import { Suspense } from "react"
@@ -82,6 +83,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
