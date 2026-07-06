@@ -43,7 +43,6 @@
     "cli",
     "mcp-server",
     ".next",
-    "out",
-    "app/page-backup.tsx"
+    "out"
   ]
 }

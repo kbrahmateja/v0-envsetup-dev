@@ -25,7 +25,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Sender Email</Label>
-            <Input value="info@swiftstrikesolutions.com" disabled />
+            <Input value="info@envsetup.dev" disabled />
             <p className="text-xs text-muted-foreground">This is configured in your environment variables</p>
           </div>
 
