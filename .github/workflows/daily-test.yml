@@ -33,6 +33,22 @@ jobs:
           ADMIN_SESSION_SECRET: "ci-test-session-secret"
 
   # ─────────────────────────────────────────
+  # Job 2: Unit Tests
+  # ─────────────────────────────────────────
+  unit-tests:
+    name: 🧬 Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - name: Run unit tests
+        run: npm test
+
+  # ─────────────────────────────────────────
   # Job 3: Core API Tests
   # ─────────────────────────────────────────
   api-tests:
