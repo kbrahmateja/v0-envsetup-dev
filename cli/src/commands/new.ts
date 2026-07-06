@@ -2,8 +2,9 @@ import { text, select, multiselect, confirm, isCancel, cancel, spinner, intro, o
 import pc from 'picocolors'
 import fs from 'fs-extra'
 import path from 'path'
-import { ideOptions, cicdOptions, testingOptions, getRecommended } from '../data/recommendations.js'
+import { ideOptions, getAllStackTools, getRecommended, type ToolOption, type ToolCategory } from '../data/recommendations.js'
 import { generateTemplates } from '../utils/templates.js'
+import { getInstallCommand, installTool } from '../utils/installer.js'
 import { generateDeveloperSetup } from '../utils/developer-setup.js'
 
 // ── Project type definitions ────────────────────────────────────────────────
@@ -15,6 +16,23 @@ const PROJECT_TYPES = [
   { value: 'cli',       label: '🔧  CLI Tool',              hint: 'Command-line application' },
   { value: 'data',      label: '📊  Data Pipeline / ML',   hint: 'ETL / ML / Analytics' },
   { value: 'desktop',   label: '🖥️   Desktop Application',  hint: 'Electron / Tauri / Native' },
+]
+
+const MOBILE_PLATFORMS = [
+  { value: 'react-native', label: 'React Native',          hint: 'TypeScript · iOS + Android · Most popular' },
+  { value: 'flutter',      label: 'Flutter',               hint: 'Dart · iOS + Android + Web · Google' },
+  { value: 'expo',         label: 'Expo (React Native)',    hint: 'TypeScript · Managed workflow · Easiest' },
+  { value: 'ios-swift',    label: 'iOS (Swift/SwiftUI)',    hint: 'Swift · iOS/macOS only · Native' },
+  { value: 'android-kt',   label: 'Android (Kotlin)',       hint: 'Kotlin · Android only · Native' },
+  { value: 'ionic',        label: 'Ionic',                  hint: 'TypeScript · Web-based hybrid' },
+  { value: 'maui',         label: '.NET MAUI',              hint: 'C# · iOS + Android + Desktop · Microsoft' },
+]
+
+const MOBILE_BACKEND_OPTIONS = [
+  { value: 'none',       label: 'No backend',              hint: 'Use BaaS only (Firebase/Supabase)' },
+  { value: 'firebase',   label: 'Firebase (BaaS)',         hint: 'Google · Auth, DB, Storage — no server needed' },
+  { value: 'supabase',   label: 'Supabase (BaaS)',         hint: 'Open source Firebase · Postgres' },
+  { value: 'custom',     label: 'Custom API backend',      hint: 'Build your own REST/GraphQL server' },
 ]
 
 // Features per project type
@@ -305,6 +323,137 @@ function generateVSCodeConfig(ide: string, language: string, testing: string[]):
 }
 
 // ── Main command ────────────────────────────────────────────────────────────
+
+// Generate mobile-specific setup files
+
+// Check and offer to install missing prerequisites for selected stack
+async function checkAndInstallPrereqs(stack: string, language: string, projectType: string): Promise<void> {
+  // Map stack to required tools with their check commands
+  const stackRequirements: Record<string, Array<{ label: string; key: string; cmd: string; required: boolean }>> = {
+    // Mobile
+    'ios-swift':    [{ label: 'Xcode', key: 'xcode', cmd: 'xcodebuild -version', required: true }, { label: 'Swift', key: 'swift', cmd: 'swift --version', required: true }],
+    'android-kt':  [{ label: 'Java 17+', key: 'java', cmd: 'java -version 2>&1', required: true }, { label: 'Kotlin', key: 'kotlin', cmd: 'kotlin -version', required: true }],
+    'react-native': [{ label: 'Node.js', key: 'nodejs', cmd: 'node --version', required: true }, { label: 'React Native CLI', key: 'react-native', cmd: 'npx react-native --version', required: false }],
+    'expo':        [{ label: 'Node.js', key: 'nodejs', cmd: 'node --version', required: true }, { label: 'Expo CLI', key: 'expo', cmd: 'npx expo --version', required: false }],
+    'flutter':     [{ label: 'Flutter SDK', key: 'flutter', cmd: 'flutter --version', required: true }],
+    'ionic':       [{ label: 'Node.js', key: 'nodejs', cmd: 'node --version', required: true }, { label: 'Ionic CLI', key: 'ionic', cmd: 'ionic --version', required: false }],
+    // Backend
+    'fastapi':     [{ label: 'Python 3.10+', key: 'python3', cmd: 'python3 --version', required: true }, { label: 'pip', key: 'pip', cmd: 'pip3 --version', required: true }],
+    'django':      [{ label: 'Python 3.10+', key: 'python3', cmd: 'python3 --version', required: true }, { label: 'pip', key: 'pip', cmd: 'pip3 --version', required: true }],
+    'flask':       [{ label: 'Python 3.10+', key: 'python3', cmd: 'python3 --version', required: true }],
+    'springboot':  [{ label: 'Java 17+', key: 'java', cmd: 'java -version 2>&1', required: true }, { label: 'Maven', key: 'mvn', cmd: 'mvn --version', required: false }],
+    'quarkus':     [{ label: 'Java 17+', key: 'java', cmd: 'java -version 2>&1', required: true }],
+    'ktor':        [{ label: 'Java 17+', key: 'java', cmd: 'java -version 2>&1', required: true }, { label: 'Kotlin', key: 'kotlin', cmd: 'kotlin -version', required: true }],
+    'gin':         [{ label: 'Go 1.21+', key: 'go', cmd: 'go version', required: true }],
+    'fiber':       [{ label: 'Go 1.21+', key: 'go', cmd: 'go version', required: true }],
+    'echo':        [{ label: 'Go 1.21+', key: 'go', cmd: 'go version', required: true }],
+    'actix':       [{ label: 'Rust', key: 'rust', cmd: 'rustc --version', required: true }, { label: 'Cargo', key: 'cargo', cmd: 'cargo --version', required: true }],
+    'axum':        [{ label: 'Rust', key: 'rust', cmd: 'rustc --version', required: true }],
+    'rocket':      [{ label: 'Rust', key: 'rust', cmd: 'rustc --version', required: true }],
+    'laravel':     [{ label: 'PHP 8.2+', key: 'php', cmd: 'php --version', required: true }, { label: 'Composer', key: 'composer', cmd: 'composer --version', required: true }],
+    'symfony':     [{ label: 'PHP 8.2+', key: 'php', cmd: 'php --version', required: true }, { label: 'Composer', key: 'composer', cmd: 'composer --version', required: true }],
+    'rails':       [{ label: 'Ruby 3.1+', key: 'ruby', cmd: 'ruby --version', required: true }, { label: 'Bundler', key: 'bundler', cmd: 'bundle --version', required: true }],
+    'sinatra':     [{ label: 'Ruby 3.1+', key: 'ruby', cmd: 'ruby --version', required: true }],
+    'phoenix':     [{ label: 'Elixir', key: 'elixir', cmd: 'elixir --version', required: true }, { label: 'Mix', key: 'mix', cmd: 'mix --version', required: true }],
+    'aspnet':      [{ label: '.NET 8+', key: 'dotnet', cmd: 'dotnet --version', required: true }],
+    'vapor':       [{ label: 'Swift', key: 'swift', cmd: 'swift --version', required: true }, { label: 'Vapor CLI', key: 'vapor', cmd: 'vapor --version', required: false }],
+    'nestjs':      [{ label: 'Node.js 18+', key: 'nodejs', cmd: 'node --version', required: true }],
+    'express':     [{ label: 'Node.js 18+', key: 'nodejs', cmd: 'node --version', required: true }],
+    'nextjs':      [{ label: 'Node.js 18+', key: 'nodejs', cmd: 'node --version', required: true }],
+  }
+
+  const { execSync } = await import('child_process')
+  const reqs = stackRequirements[stack] ?? []
+  if (!reqs.length) return
+
+  // Check which are missing
+  const missing: typeof reqs = []
+  for (const req of reqs) {
+    try { execSync(req.cmd, { stdio: 'pipe', timeout: 3000 }) }
+    catch { missing.push(req) }
+  }
+
+  if (!missing.length) return
+
+  console.log()
+  console.log(pc.yellow(`  ⚠️  Missing prerequisites for ${pc.bold(stack)}:`))
+  missing.forEach(m => console.log(`     ${pc.red('✘')} ${m.label}${m.required ? '' : pc.dim(' (optional)')} `))
+  console.log()
+
+  // Offer to install each missing tool
+  for (const tool of missing) {
+    const installCmd = getInstallCommand(tool.key)
+    if (!installCmd) {
+      console.log(pc.dim(`  ${tool.label}: install manually`))
+      continue
+    }
+
+    const doInstall = await confirm({
+      message: `Install ${tool.label}? ${pc.dim('(' + installCmd.substring(0, 60) + ')')}`,
+    })
+    if (isCancel(doInstall)) break
+    if (doInstall) {
+      console.log()
+      installTool(tool.key, tool.label)
+      console.log()
+    }
+  }
+}
+
+async function generateMobileSetup(cfg: { name: string; stack: string; mobileBackend: string }): Promise<string[]> {
+  const dir = path.join(process.cwd(), cfg.name)
+  await fs.ensureDir(dir)
+  const created: string[] = []
+
+  const write = async (name: string, content: string) => {
+    await fs.writeFile(path.join(dir, name), content)
+    created.push(`${cfg.name}/${name}`)
+  }
+
+  // .gitignore
+  const gitignoreMap: Record<string, string> = {
+    'ios-swift':    'build/\n*.xcuserdata\n.DS_Store\nDerivedData/\n*.ipa\n',
+    'android-kt':  '*.apk\n*.aab\nbuild/\n.gradle/\nlocal.properties\n',
+    'react-native': 'node_modules/\n.expo/\n*.apk\n*.ipa\n.DS_Store\n',
+    'expo':         'node_modules/\n.expo/\ndist/\n.DS_Store\n',
+    'flutter':      '.dart_tool/\nbuild/\n*.apk\n*.ipa\n.DS_Store\n',
+    'ionic':        'node_modules/\nwww/\n*.apk\n*.ipa\n',
+  }
+  await write('.gitignore', gitignoreMap[cfg.stack] ?? 'node_modules/\n.DS_Store\n')
+
+  // README with mobile-specific setup
+  const setupMap: Record<string, string> = {
+    'ios-swift':    '## Setup\n\n1. Install Xcode from App Store\n2. `xcode-select --install`\n3. `pod install` (if using CocoaPods)\n4. Open `.xcworkspace` in Xcode\n5. Select simulator and run',
+    'android-kt':  '## Setup\n\n1. Install Android Studio\n2. Install JDK 17+\n3. Open project in Android Studio\n4. Sync Gradle\n5. Run on emulator or device',
+    'react-native': '## Setup\n\n1. Install Node.js 18+\n2. `npm install`\n3. Install Expo Go on device or use simulator\n4. `npx expo start`',
+    'expo':         '## Setup\n\n1. Install Node.js 18+\n2. `npm install -g expo-cli`\n3. `npm install`\n4. `npx expo start`',
+    'flutter':      '## Setup\n\n1. Install Flutter SDK: https://flutter.dev/docs/get-started/install\n2. `flutter doctor` (fix any issues)\n3. `flutter pub get`\n4. `flutter run`',
+    'ionic':        '## Setup\n\n1. Install Node.js 18+\n2. `npm install -g @ionic/cli`\n3. `npm install`\n4. `ionic serve`',
+  }
+
+  const backendInfo = cfg.mobileBackend === 'firebase'
+    ? '\n## Backend: Firebase\n- Create project: https://console.firebase.google.com\n- Add `google-services.json` (Android) / `GoogleService-Info.plist` (iOS)\n'
+    : cfg.mobileBackend === 'supabase'
+    ? '\n## Backend: Supabase\n- Create project: https://supabase.com\n- Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `.env`\n'
+    : cfg.mobileBackend === 'custom'
+    ? '\n## Backend: Custom API\n- Set `API_URL` in `.env`\n'
+    : ''
+
+  await write('README.md', `# ${cfg.name}\n\n> Generated by [envsetup.dev](https://envsetup.dev)\n\n## Platform\n${cfg.stack}\n\n${setupMap[cfg.stack] ?? ''}${backendInfo}\n---\nGenerated with: \`npx @envsetup/cli new\`\n`)
+
+  // .env.example for backend
+  if (cfg.mobileBackend !== 'none') {
+    const envMap: Record<string, string> = {
+      firebase: 'FIREBASE_API_KEY=\nFIREBASE_PROJECT_ID=\nFIREBASE_APP_ID=\n',
+      supabase: 'SUPABASE_URL=https://your-project.supabase.co\nSUPABASE_ANON_KEY=\n',
+      custom: 'API_URL=https://api.yourdomain.com\nAPI_KEY=\n',
+    }
+    await write('.env.example', envMap[cfg.mobileBackend] ?? '')
+  }
+
+  return created
+}
+
 export async function newCommand() {
   console.log()
   console.log(pc.cyan('  Complete project setup from scratch'))
@@ -339,9 +488,27 @@ export async function newCommand() {
   }) as string
   if (isCancel(teamSize)) { cancel('Cancelled'); process.exit(0) }
 
-  // 5. Backend stack (skip for frontend-only)
+  // Mobile platform selection
+  let mobilePlatform = ''
+  let mobileBackend = 'none'
+  if (projectType === 'mobile') {
+    const platform = await select({ message: 'Mobile platform?', options: MOBILE_PLATFORMS })
+    if (isCancel(platform)) { cancel('Cancelled'); process.exit(0) }
+    mobilePlatform = platform as string
+
+    const backendChoice = await select({
+      message: 'Backend / API?',
+      options: MOBILE_BACKEND_OPTIONS,
+    })
+    if (isCancel(backendChoice)) { cancel('Cancelled'); process.exit(0) }
+    mobileBackend = backendChoice as string
+  }
+
+  // 5. Backend stack (skip for frontend-only and mobile with BaaS)
   let stack = 'express', language = 'typescript', database = 'postgres'
-  if (projectType !== 'frontend') {
+  const needsCustomBackend = projectType !== 'frontend' &&
+    !(projectType === 'mobile' && mobileBackend !== 'custom')
+  if (needsCustomBackend) {
     const langOpts = [
       { value: 'typescript', label: 'TypeScript / Node.js', hint: 'Express, NestJS, Next.js' },
       { value: 'python',     label: 'Python',               hint: 'FastAPI, Django, Flask' },
@@ -374,40 +541,105 @@ export async function newCommand() {
         { value: 'postgres', label: 'PostgreSQL', hint: 'Recommended — reliable, feature-rich' },
         { value: 'mysql',    label: 'MySQL',      hint: 'Popular, wide support' },
         { value: 'mongodb',  label: 'MongoDB',    hint: 'NoSQL, flexible schema' },
-        { value: 'sqlite',   label: 'SQLite',     hint: 'Embedded, zero config' },
+        { value: 'sqlite',   label: 'SQLite',     hint: 'Embedded — best for mobile device storage, not backend' },
+        { value: 'redis',    label: 'Redis',      hint: 'Cache + Queue' },
         { value: 'none',     label: 'No database', hint: 'Stateless service' },
       ],
     }) as string
     if (isCancel(db)) { cancel('Cancelled'); process.exit(0) }
-    database = db
+    // Warn if SQLite chosen for backend
+    if (db === 'sqlite' && projectType !== 'mobile') {
+      console.log(pc.yellow('\n  ⚠️  SQLite is embedded — for production backends, PostgreSQL is recommended.'))
+      const keepSqlite = await confirm({ message: 'Continue with SQLite anyway?', initialValue: false })
+      if (isCancel(keepSqlite)) { cancel('Cancelled'); process.exit(0) }
+      if (!keepSqlite) {
+        console.log(pc.dim('  → Switching to PostgreSQL'))
+        database = 'postgres'
+      } else {
+        database = db
+      }
+    } else {
+      database = db
+    }
   }
 
-  // 6. IDE
-  const ideList = ideOptions[language] ?? ideOptions.typescript
+  // For mobile BaaS, set appropriate stack
+  if (projectType === 'mobile' && mobileBackend === 'firebase') {
+    stack = 'firebase'; language = 'typescript'; database = 'firebase'
+  } else if (projectType === 'mobile' && mobileBackend === 'supabase') {
+    stack = 'supabase'; language = 'typescript'; database = 'postgres'
+  } else if (projectType === 'mobile' && mobileBackend === 'none') {
+    stack = mobilePlatform; language = mobilePlatform.includes('flutter') ? 'dart' :
+      mobilePlatform.includes('swift') ? 'swift' :
+      mobilePlatform.includes('android') ? 'kotlin' : 'typescript'
+    database = 'none'
+  }
+
+  // Check prerequisites for selected stack and offer to install
+  await checkAndInstallPrereqs(
+    projectType === 'mobile' ? mobilePlatform : stack,
+    language,
+    projectType as string
+  )
+
+  // ── All tools in ONE comprehensive selection ──────────────────────────
+  const allToolCategories = getAllStackTools(
+    language, stack, projectType as string, mobilePlatform, mobileBackend
+  )
+
+  console.log()
+  console.log(pc.bold('  Select tools for your project'))
+  console.log(pc.dim('  (star = recommended, space to toggle)'))
+
+  const selectedTools: string[] = []
+
+  for (const cat of allToolCategories) {
+    // Skip separator-only or empty categories
+    const realTools = cat.tools.filter(t => !t.value.startsWith('__sep'))
+    if (!realTools.length) continue
+
+    const selected = await multiselect({
+      message: `${cat.icon}  ${cat.category}`,
+      options: realTools.map((o: ToolOption) => ({
+        value: o.value,
+        label: `${o.label}${o.recommended ? pc.green(' ★') : ''}`,
+        hint: o.hint,
+      })),
+      initialValues: getRecommended(realTools),
+      required: false,
+    }) as string[]
+
+    if (isCancel(selected)) { cancel('Cancelled'); process.exit(0) }
+    selectedTools.push(...(selected ?? []))
+  }
+
+  // Extract specific tool categories from selectedTools
+  const cicdTools = ['github-actions','gitlab-ci','jenkins','circleci','aws-codepipeline','bitbucket-pipelines','argo-cd']
+  const devopsTools = ['docker','kubernetes','terraform','ansible','helm']
+  const lintingTools = ['eslint','prettier','husky','swiftlint','swiftformat','flutter-analyze','very-good-analysis','detekt','ktlint','rubocop','ruff','mypy','black','checkstyle','spotbugs','pmd','archunit','phpcs','phpstan','pint','phpstan','golangci-lint','gofmt','clippy','rustfmt','credo','dialyxir','roslyn-analyzers','stylecop']
+  const qualityTools = ['sonarqube','codecov','snyk','deepsource']
+  const monitoringTools = ['sentry','grafana','datadog','opentelemetry','elastic-apm','firebase-crashlytics','firebase-analytics']
+  const securityTools = ['owasp-zap','trivy','dependabot','vault','gitleaks']
+  const docTools = ['swagger','storybook','docusaurus','readme-ai','notion']
+  const nonTestingTools = [...cicdTools, ...devopsTools, ...lintingTools, ...qualityTools, ...monitoringTools, ...securityTools, ...docTools]
+
+  const testingTools = selectedTools.filter((t: string) => !nonTestingTools.includes(t))
+  const cicd = selectedTools.filter((t: string) => cicdTools.includes(t))
+  const useDocker = selectedTools.includes('docker')
+
+  // IDE selection (keep simple)
+  const ideList = ideOptions[language] ?? ideOptions[mobilePlatform] ?? ideOptions.typescript
   const ide = await select({
-    message: 'Primary IDE?',
-    options: ideList.map(o => ({ value: o.value, label: `${o.label}${o.recommended ? pc.green(' ★') : ''}`, hint: o.hint })),
+    message: '🖥️  Primary IDE?',
+    options: ideList.map((o: ToolOption) => ({
+      value: o.value,
+      label: `${o.label}${o.recommended ? pc.green(' ★') : ''}`,
+      hint: o.hint,
+    })),
   }) as string
   if (isCancel(ide)) { cancel('Cancelled'); process.exit(0) }
 
-  // 7. CI/CD
-  const cicd = await select({
-    message: 'CI/CD pipeline?',
-    options: cicdOptions.map(o => ({ value: o.value, label: `${o.label}${o.recommended ? pc.green(' ★') : ''}`, hint: o.hint })),
-  }) as string
-  if (isCancel(cicd)) { cancel('Cancelled'); process.exit(0) }
-
-  // 8. Testing
-  const testList = testingOptions[language] ?? testingOptions.typescript
-  const testing = await multiselect({
-    message: 'Testing tools? (★ = recommended)',
-    options: testList.map(o => ({ value: o.value, label: `${o.label}${o.recommended ? pc.green(' ★') : ''}`, hint: o.hint })),
-    initialValues: getRecommended(testList),
-    required: false,
-  }) as string[]
-  if (isCancel(testing)) { cancel('Cancelled'); process.exit(0) }
-
-  // 9. Docs to generate
+    // 9. Docs to generate
   const docs = await multiselect({
     message: 'Generate which documents?',
     options: [
@@ -430,12 +662,14 @@ export async function newCommand() {
     [
       `  Project      : ${pc.bold(name as string)}`,
       `  Type         : ${pc.cyan(projectType as string)}`,
-      `  Stack        : ${pc.cyan(language + ' / ' + stack)}`,
-      `  Database     : ${pc.cyan(database)}`,
+      `  Stack        : ${pc.cyan(projectType === 'mobile' ? mobilePlatform + (mobileBackend !== 'none' ? ' + ' + mobileBackend + ' backend' : '') : language + ' / ' + stack)}`,
+      `  Database     : ${pc.cyan(projectType === 'mobile' && mobileBackend !== 'custom' ? mobileBackend === 'none' ? 'none' : mobileBackend : database)}`,
       `  Features     : ${pc.dim((features as string[]).join(', ') || 'none')}`,
       `  IDE          : ${pc.dim(ide)}`,
-      `  CI/CD        : ${pc.dim(cicd)}`,
-      `  Testing      : ${pc.dim((testing as string[]).join(', ') || 'none')}`,
+      `  CI/CD        : ${pc.dim(cicd.join(', ') || 'none')}`,
+      `  Testing      : ${pc.dim(testingTools.join(', ') || 'none')}`,
+      `  Linting      : ${pc.dim(selectedTools.filter((t: string) => lintingTools.includes(t)).join(', ') || 'none')}`,
+      `  Monitoring   : ${pc.dim(selectedTools.filter((t: string) => monitoringTools.includes(t)).join(', ') || 'none')}`,
       `  Timeline     : ${pc.yellow(timeline)}`,
       `  Docs         : ${pc.dim((docs as string[]).join(', '))}`,
     ].join('\n'),
@@ -453,12 +687,15 @@ export async function newCommand() {
   await fs.ensureDir(projectDir)
 
   // 1. Docker files
-  const devops = (cicd !== 'none') ? [cicd] : []
-  const infraFiles = await generateTemplates({
-    name: name as string, stack, language, database,
-    tools: (testing as string[]).filter(t => !['github-actions','devcontainer'].includes(t)),
-    devops,
-  })
+  const devops = [...cicd]  // already array from selectedTools
+  // For mobile, generate mobile-specific files instead of Docker
+  const infraFiles = projectType === 'mobile'
+    ? await generateMobileSetup({ name: name as string, stack: mobilePlatform, mobileBackend })
+    : await generateTemplates({
+        name: name as string, stack, language, database,
+        tools: testingTools.filter((t: string) => !['github-actions','devcontainer'].includes(t)),
+        devops: useDocker ? devops : devops.filter(d => d !== 'docker'),
+      })
 
   // 2. User stories
   if ((docs as string[]).includes('user-stories')) {
@@ -474,7 +711,7 @@ export async function newCommand() {
     await fs.ensureDir(path.join(projectDir, 'planning'))
     await fs.writeFile(
       path.join(projectDir, 'planning', 'TASKS.md'),
-      generateTasks(name as string, projectType as string, stack, features as string[], cicd)
+      generateTasks(name as string, projectType as string, stack, features as string[], cicd[0] ?? 'none')
     )
   }
 
@@ -523,7 +760,7 @@ export async function newCommand() {
     await fs.ensureDir(path.join(projectDir, '.vscode'))
     await fs.writeFile(
       path.join(projectDir, '.vscode', 'extensions.json'),
-      generateVSCodeConfig(ide, language, testing as string[])
+      generateVSCodeConfig(ide, language, testingTools)
     )
     await fs.writeFile(path.join(projectDir, '.vscode', 'settings.json'), JSON.stringify({
       "editor.formatOnSave": true,
@@ -537,7 +774,7 @@ export async function newCommand() {
 
   // Generate DEVELOPER_SETUP.md
   await fs.writeFile(path.join(projectDir, 'docs', 'DEVELOPER_SETUP.md'),
-    generateDeveloperSetup({ name: name as string, stack, language, ide, testing: testing as string[] })
+    generateDeveloperSetup({ name: name as string, stack, language, ide, testing: testingTools })
   )
 
   s.stop(pc.green('✓ Project generated!'))

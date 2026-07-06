@@ -2,7 +2,7 @@
   "name": "@envsetup/cli",
   "version": "0.5.0",
   "type": "module",
-  "description": "Generate dev environments for 23+ frameworks — Dockerfile, docker-compose, .env in seconds.",
+  "description": "Generate dev environments for 23+ frameworks \u2014 Dockerfile, docker-compose, .env in seconds.",
   "main": "./dist/index.js",
   "bin": {
     "envsetup": "./dist/index.js"
@@ -27,7 +27,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/index.js",
-    "dev": "tsc -w"
+    "dev": "tsc -w",
+    "test": "node dist/tests/combinations.test.js",
+    "test:build": "tsc && node dist/tests/combinations.test.js"
   },
   "dependencies": {
     "@clack/prompts": "^0.9.1",
