@@ -3,7 +3,7 @@ import { generateText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
 import { type NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
-import { searchKnowledge, buildContext, extractQuery } from "@/lib/rag"
+import { searchKnowledge, buildContext, extractQuery, type KnowledgeChunk } from "@/lib/rag"
 import { sql } from "@/lib/db"
 
 function getModel() {
@@ -21,8 +21,16 @@ function getModel() {
   return null
 }
 
-// Smart fallback using our knowledge base data
-function smartFallback(messages: { role: string; content: string }[], context: string): string {
+// Smart fallback using our knowledge base data — used whenever there's no LLM
+// response (not configured, or the call failed), so it must read the same regardless
+// of *why* the LLM didn't answer. Prefers an actual RAG chunk (precisely matched via
+// full-text search) over the generic regex patterns below.
+function smartFallback(messages: { role: string; content: string }[], context: string, chunks: KnowledgeChunk[] = []): string {
+  if (chunks.length > 0) {
+    const top = chunks[0]
+    return `**${top.title}** — ${top.content}\n\nWant to generate this now? → \`npx @envsetup/cli init\` or [envsetup.dev/generator](https://envsetup.dev/generator)`
+  }
+
   const query = extractQuery(messages).toLowerCase()
 
   const patterns: [RegExp, string][] = [
@@ -165,7 +173,7 @@ export async function POST(req: NextRequest) {
 
     // RAG: search knowledge base for relevant context
     const query = extractQuery(messages)
-    const chunks = await searchKnowledge(query, 4)
+    const chunks = await searchKnowledge(query)
     const context = buildContext(chunks)
 
     const model = getModel()
@@ -175,11 +183,16 @@ export async function POST(req: NextRequest) {
       try {
         const systemPrompt = `You are an expert DevOps consultant for envsetup.dev — a tool that generates Dockerfiles, docker-compose.yml, and .env files for any tech stack.
 
-${context}
+${context || "RELEVANT KNOWLEDGE:\n(none retrieved for this question)\n---"}
 
 Guidelines:
 - Be conversational and helpful (2-4 sentences)
-- Use the knowledge above to give accurate version and Docker image info
+- CRITICAL: any version number or Docker image tag you state MUST be copied exactly
+  from the RELEVANT KNOWLEDGE above. Never invent, guess, or combine version numbers
+  or image tags that aren't written there verbatim.
+- If RELEVANT KNOWLEDGE doesn't cover the specific combination the user asked about,
+  say so plainly (e.g. "I don't have exact version info for that combo") instead of
+  guessing, and ask a clarifying question or point them to the generator instead.
 - When you know the full stack (language + framework + DB), suggest:
   "Ready to generate! Try: npx @envsetup/cli init or visit envsetup.dev/generator"
 - Support natural language: understand "I need java project" = Spring Boot
@@ -201,15 +214,7 @@ Guidelines:
     }
 
     if (!responsePayload) {
-      // RAG-enhanced fallback: use retrieved context even without LLM
-      if (chunks.length > 0) {
-        const topChunk = chunks[0]
-        responsePayload = {
-          message: `Based on your request:\n\n**${topChunk.title}**\n${topChunk.content}\n\n→ Generate your environment: \`npx @envsetup/cli init\` or [envsetup.dev/generator](https://envsetup.dev/generator)`,
-        }
-      } else {
-        responsePayload = { message: smartFallback(messages, context) }
-      }
+      responsePayload = { message: smartFallback(messages, context, chunks) }
     }
 
     return withCookie(NextResponse.json(responsePayload))

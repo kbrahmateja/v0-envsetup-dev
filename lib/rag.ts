@@ -9,11 +9,29 @@ export interface KnowledgeChunk {
 }
 
 /**
+ * Turn a free-text query into an OR'd tsquery ("spring | react | mysql") instead of
+ * plainto_tsquery's implicit AND. Compound multi-technology questions ("spring react
+ * mysql latest") need OR semantics — requiring every term in one row means most
+ * real questions match nothing, leaving the LLM with no grounding at all.
+ */
+export function toOrTsQuery(query: string): string {
+  return query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(" | ")
+}
+
+/**
  * Search knowledge base using PostgreSQL full-text search
  * Returns top-k most relevant chunks for the query
  */
-export async function searchKnowledge(query: string, limit = 4): Promise<KnowledgeChunk[]> {
+export async function searchKnowledge(query: string, limit = 6): Promise<KnowledgeChunk[]> {
   if (!query?.trim()) return []
+
+  const orQuery = toOrTsQuery(query)
+  if (!orQuery) return []
 
   try {
     const results = await sql`
@@ -24,22 +42,27 @@ export async function searchKnowledge(query: string, limit = 4): Promise<Knowled
         tags,
         ts_rank(
           to_tsvector('english', title || ' ' || content),
-          plainto_tsquery('english', ${query})
+          to_tsquery('english', ${orQuery})
         ) AS rank
       FROM knowledge_base
       WHERE to_tsvector('english', title || ' ' || content)
-            @@ plainto_tsquery('english', ${query})
+            @@ to_tsquery('english', ${orQuery})
       ORDER BY rank DESC
       LIMIT ${limit}
     ` as KnowledgeChunk[]
 
-    // If FTS finds nothing, fall back to tag/category matching
+    // If FTS finds nothing, fall back to substring matching against tags
+    // (tags are stored as multi-word phrases like "spring boot", so a plain
+    // array-overlap check against single query words would never match).
     if (!results.length) {
-      const words = query.toLowerCase().split(/\s+/)
+      const words = query.toLowerCase().split(/\s+/).filter(Boolean)
       const fallback = await sql`
         SELECT title, content, category, tags, 0.1 as rank
         FROM knowledge_base
-        WHERE tags && ${words}
+        WHERE EXISTS (
+          SELECT 1 FROM unnest(tags) AS tag, unnest(${words}::text[]) AS word
+          WHERE tag ILIKE '%' || word || '%'
+        )
         LIMIT ${limit}
       ` as KnowledgeChunk[]
       return fallback

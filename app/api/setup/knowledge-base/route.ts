@@ -2,7 +2,7 @@ import { sql } from "@/lib/db"
 import { NextResponse } from "next/server"
 
 const knowledge = [
-  { category: "language", tags: ["java","spring boot","jvm","enterprise"], title: "Java Spring Boot", content: "Java Spring Boot 3.2 with PostgreSQL. Requires Java 17+. Docker: eclipse-temurin:21-jdk-alpine. Maven/Gradle build. Spring Security for auth, Spring Data JPA ORM. Port 8080. generateText environment variables: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD." },
+  { category: "language", tags: ["java","spring boot","jvm","enterprise"], title: "Java Spring Boot", content: "Java Spring Boot 3.2 with PostgreSQL. Requires Java 17+. Docker: eclipse-temurin:21-jdk-alpine. Maven/Gradle build. Spring Security for auth, Spring Data JPA ORM. Port 8080. Environment variables: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD." },
   { category: "language", tags: ["python","fastapi","async","modern"], title: "Python FastAPI", content: "FastAPI modern async Python framework. Python 3.12, python:3.12-slim Docker. SQLAlchemy 2.x + Alembic migrations. Auto Swagger/OpenAPI docs at /docs. Port 8000. uvicorn for server." },
   { category: "language", tags: ["python","django","batteries","full-stack"], title: "Python Django", content: "Django 5.0 requires Python 3.10+. python:3.12-slim Docker. Django REST Framework for APIs. Built-in admin, auth, ORM. Celery+Redis for async tasks. Port 8000." },
   { category: "language", tags: ["python","flask","minimal","lightweight"], title: "Python Flask", content: "Flask minimal Python framework. python:3.12-slim. Simple and flexible. SQLAlchemy ORM. Good for small APIs." },
@@ -56,11 +56,25 @@ export async function GET(_req: Request) {
     `
     await sql`CREATE INDEX IF NOT EXISTS idx_kb_tags ON knowledge_base USING GIN(tags)`
 
+    // Dedupe any rows left over from before `title` was unique (repeated GET calls
+    // used to insert the same seed data again every time — ON CONFLICT DO NOTHING
+    // with no unique constraint never actually conflicted).
+    await sql`
+      DELETE FROM knowledge_base a USING knowledge_base b
+      WHERE a.id > b.id AND a.title = b.title
+    `
+    await sql`
+      ALTER TABLE knowledge_base ADD CONSTRAINT knowledge_base_title_key UNIQUE (title)
+    `.catch(() => {})
+
     for (const item of knowledge) {
       await sql`
         INSERT INTO knowledge_base (category, tags, title, content)
         VALUES (${item.category}, ${item.tags}, ${item.title}, ${item.content})
-        ON CONFLICT DO NOTHING
+        ON CONFLICT (title) DO UPDATE SET
+          category = EXCLUDED.category,
+          tags = EXCLUDED.tags,
+          content = EXCLUDED.content
       `
     }
 
