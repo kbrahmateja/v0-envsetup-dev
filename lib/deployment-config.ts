@@ -329,3 +329,250 @@ npx @envsetup/cli init
 \`\`\`
 `
 }
+
+// ─── Development Tools Generator ────────────────────────────────────────────
+// Turns the selected "Development Tools" checkboxes into real config files.
+// Language-specific tools (jest, eslint, etc.) are only emitted when they
+// actually match config.language, as a defensive backstop to the UI filter.
+export function generateToolFiles(config: EnvironmentConfig): Record<string, string> {
+  const files: Record<string, string> = {}
+  const lang = config.language.toLowerCase()
+  const selected = new Set(config.tools ?? [])
+  const isJs = lang === "javascript" || lang === "typescript"
+  const ts = lang === "typescript"
+
+  if (selected.has("github-actions")) {
+    files[".github/workflows/ci.yml"] = generateGithubActionsWorkflow(config)
+  }
+
+  if (selected.has("eslint") && isJs) {
+    files[".eslintrc.json"] = JSON.stringify(
+      {
+        env: { node: true, es2021: true },
+        extends: ts ? ["eslint:recommended", "plugin:@typescript-eslint/recommended"] : ["eslint:recommended"],
+        parserOptions: { ecmaVersion: "latest", sourceType: "module" },
+        ...(ts ? { parser: "@typescript-eslint/parser", plugins: ["@typescript-eslint"] } : {}),
+        rules: {},
+      },
+      null,
+      2,
+    )
+  }
+
+  if (selected.has("prettier") && isJs) {
+    files[".prettierrc"] = JSON.stringify({ semi: false, singleQuote: true, trailingComma: "es5", printWidth: 100 }, null, 2)
+  }
+
+  if (selected.has("jest") && isJs) {
+    const ext = ts ? "ts" : "js"
+    files["jest.config.js"] = `module.exports = {
+  testEnvironment: "node",
+${ts ? '  preset: "ts-jest",\n' : ""}  testMatch: ["**/*.test.${ext}"],
+}
+`
+    files[`__tests__/example.test.${ext}`] = `test("example", () => {
+  expect(1 + 1).toBe(2)
+})
+`
+  }
+
+  if (selected.has("cypress") && isJs) {
+    files["cypress.config.js"] = `const { defineConfig } = require("cypress")
+
+module.exports = defineConfig({
+  e2e: {
+    baseUrl: "http://localhost:3000",
+    setupNodeEvents(on, config) {},
+  },
+})
+`
+    files["cypress/e2e/example.cy.js"] = `describe("smoke test", () => {
+  it("loads the homepage", () => {
+    cy.visit("/")
+  })
+})
+`
+  }
+
+  if (selected.has("husky") && isJs) {
+    files[".husky/pre-commit"] = `#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npx lint-staged
+`
+  }
+
+  if (selected.has("black") && lang === "python") {
+    files["pyproject.toml"] = `[tool.black]
+line-length = 88
+target-version = ["py312"]
+`
+  }
+
+  if (selected.has("pytest") && lang === "python") {
+    files["pytest.ini"] = `[pytest]
+testpaths = tests
+python_files = test_*.py
+`
+    files["tests/test_example.py"] = `def test_example():
+    assert 1 + 1 == 2
+`
+  }
+
+  if (selected.has("junit") && lang === "java") {
+    files["src/test/java/ExampleTest.java"] = `import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class ExampleTest {
+    @Test
+    void example() {
+        assertEquals(2, 1 + 1);
+    }
+}
+`
+  }
+
+  if (selected.has("nunit") && lang === "csharp") {
+    files["Tests/ExampleTests.cs"] = `using NUnit.Framework;
+
+namespace Tests
+{
+    public class ExampleTests
+    {
+        [Test]
+        public void Example()
+        {
+            Assert.AreEqual(2, 1 + 1);
+        }
+    }
+}
+`
+  }
+
+  if (selected.has("golangci-lint") && lang === "go") {
+    files[".golangci.yml"] = `run:
+  timeout: 5m
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - unused
+`
+  }
+
+  if (selected.has("clippy") && lang === "rust") {
+    files["clippy.toml"] = `# See https://doc.rust-lang.org/clippy/configuration.html
+avoid-breaking-exported-api = true
+`
+  }
+
+  if (selected.has("rspec") && lang === "ruby") {
+    files["spec/spec_helper.rb"] = `RSpec.configure do |config|
+  config.expect_with :rspec do |expectations|
+    expectations.include_chain_clauses_in_custom_matcher_descriptions = true
+  end
+end
+`
+    files["spec/example_spec.rb"] = `RSpec.describe "example" do
+  it "works" do
+    expect(1 + 1).to eq(2)
+  end
+end
+`
+  }
+
+  if (selected.has("phpunit") && lang === "php") {
+    files["phpunit.xml"] = `<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php">
+  <testsuites>
+    <testsuite name="Tests">
+      <directory>tests</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>
+`
+    files["tests/ExampleTest.php"] = `<?php
+use PHPUnit\\Framework\\TestCase;
+
+class ExampleTest extends TestCase
+{
+    public function testExample(): void
+    {
+        $this->assertEquals(2, 1 + 1);
+    }
+}
+`
+  }
+
+  return files
+}
+
+function generateGithubActionsWorkflow(config: EnvironmentConfig): string {
+  const lang = config.language.toLowerCase()
+  const setupStep =
+    lang === "javascript" || lang === "typescript"
+      ? `      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm test --if-present`
+      : lang === "python"
+      ? `      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: pytest || true`
+      : lang === "java"
+      ? `      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - run: mvn -B test || ./gradlew test`
+      : lang === "go"
+      ? `      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - run: go build ./...
+      - run: go test ./...`
+      : lang === "rust"
+      ? `      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build --release
+      - run: cargo test`
+      : lang === "csharp"
+      ? `      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet build
+      - run: dotnet test`
+      : lang === "ruby"
+      ? `      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - run: bundle exec rspec || true`
+      : lang === "php"
+      ? `      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - run: composer install
+      - run: vendor/bin/phpunit || true`
+      : `      - run: echo "Add your build/test steps here"`
+
+  return `name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+${setupStep}
+`
+}

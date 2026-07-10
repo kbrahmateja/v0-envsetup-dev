@@ -41,16 +41,45 @@ const frameworks = {
   swift: ["Vapor", "Perfect", "Kitura"],
 }
 
-const tools = [
+// Tools available for every language.
+const universalTools = [
   { id: "docker", label: "Docker" },
   { id: "git", label: "Git" },
-  { id: "eslint", label: "ESLint" },
-  { id: "prettier", label: "Prettier" },
-  { id: "jest", label: "Jest" },
-  { id: "cypress", label: "Cypress" },
-  { id: "husky", label: "Husky" },
   { id: "github-actions", label: "GitHub Actions" },
 ]
+
+// Tools only meaningful for specific languages — shown in addition to the
+// universal ones once a matching language is selected.
+const toolsByLanguage: Record<string, { id: string; label: string }[]> = {
+  javascript: [
+    { id: "eslint", label: "ESLint" },
+    { id: "prettier", label: "Prettier" },
+    { id: "jest", label: "Jest" },
+    { id: "cypress", label: "Cypress" },
+    { id: "husky", label: "Husky" },
+  ],
+  typescript: [
+    { id: "eslint", label: "ESLint" },
+    { id: "prettier", label: "Prettier" },
+    { id: "jest", label: "Jest" },
+    { id: "cypress", label: "Cypress" },
+    { id: "husky", label: "Husky" },
+  ],
+  python: [
+    { id: "black", label: "Black (formatter)" },
+    { id: "pytest", label: "Pytest" },
+  ],
+  java: [{ id: "junit", label: "JUnit" }],
+  csharp: [{ id: "nunit", label: "NUnit" }],
+  go: [{ id: "golangci-lint", label: "golangci-lint" }],
+  rust: [{ id: "clippy", label: "Clippy" }],
+  ruby: [{ id: "rspec", label: "RSpec" }],
+  php: [{ id: "phpunit", label: "PHPUnit" }],
+}
+
+function getAvailableTools(language: string) {
+  return [...universalTools, ...(toolsByLanguage[language] ?? [])]
+}
 
 export default function GeneratorForm() {
   const router = useRouter()
@@ -138,7 +167,17 @@ export default function GeneratorForm() {
               <Label htmlFor="language">Programming Language</Label>
               <Select
                 value={formData.language}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, language: value, framework: "" }))}
+                onValueChange={(value) =>
+                  setFormData((prev) => {
+                    const availableIds = new Set(getAvailableTools(value).map((t) => t.id))
+                    return {
+                      ...prev,
+                      language: value,
+                      framework: "",
+                      tools: prev.tools.filter((t) => availableIds.has(t)),
+                    }
+                  })
+                }
                 required
               >
                 <SelectTrigger>
@@ -189,8 +228,11 @@ export default function GeneratorForm() {
 
           <div className="space-y-4">
             <Label>Development Tools</Label>
+            {!formData.language && (
+              <p className="text-xs text-muted-foreground">Pick a language above to see language-specific tools.</p>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {tools.map((tool) => (
+              {getAvailableTools(formData.language).map((tool) => (
                 <div key={tool.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={tool.id}

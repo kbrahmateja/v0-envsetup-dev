@@ -1,4 +1,4 @@
-import { generateDockerCompose, generateDockerfile, generateEnvExample, generateReadme, type EnvironmentConfig } from "@/lib/deployment-config"
+import { generateDockerCompose, generateDockerfile, generateEnvExample, generateReadme, generateToolFiles, type EnvironmentConfig } from "@/lib/deployment-config"
 import JSZip from "jszip"
 
 export async function POST(req: Request) {
@@ -10,6 +10,11 @@ export async function POST(req: Request) {
   zip.file("docker-compose.yml", generateDockerCompose(config))
   zip.file(".env.example",       generateEnvExample(config))
   zip.file("README.md",          generateReadme(config))
+
+  // Development Tools checkboxes (ESLint, Jest, GitHub Actions, etc.) -> real config files
+  for (const [path, content] of Object.entries(generateToolFiles(config))) {
+    zip.file(path, content)
+  }
   zip.file(".gitignore", `# Dependencies
 node_modules/
 vendor/
