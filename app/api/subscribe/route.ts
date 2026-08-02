@@ -23,11 +23,11 @@ export async function POST(request: Request) {
         `
         isNewSubscriber = true
       }
-    } catch (dbError: any) {
+    } catch (dbError) {
       console.error("Database error details:", {
-        message: dbError?.message,
-        cause: dbError?.cause,
-        stack: dbError?.stack,
+        message: dbError instanceof Error ? dbError.message : String(dbError),
+        cause: dbError instanceof Error ? dbError.cause : undefined,
+        stack: dbError instanceof Error ? dbError.stack : undefined,
       })
       return NextResponse.json({ error: "Failed to store subscription" }, { status: 500 })
     }

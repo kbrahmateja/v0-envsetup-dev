@@ -5,14 +5,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export async function VisitorsList() {
 
-  let visitors: any[] = []
+  type VisitorRow = {
+    id: number
+    page_url: string
+    country: string | null
+    city: string | null
+    ip_address: string | null
+    visited_at: string
+  }
+  let visitors: VisitorRow[] = []
 
   try {
-    visitors = await sql`
+    visitors = (await sql`
       SELECT * FROM visitors
       ORDER BY visited_at DESC
       LIMIT 100
-    `
+    `) as VisitorRow[]
   } catch (error) {
     console.error("Error fetching visitors list:", error)
   }

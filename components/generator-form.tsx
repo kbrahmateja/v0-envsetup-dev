@@ -146,7 +146,7 @@ export default function GeneratorForm() {
       <CardHeader>
         <CardTitle>Project Configuration</CardTitle>
         <CardDescription>
-          Tell us about your project and we'll generate the perfect development environment
+          Tell us about your project and we&apos;ll generate the perfect development environment
         </CardDescription>
       </CardHeader>
       <CardContent>

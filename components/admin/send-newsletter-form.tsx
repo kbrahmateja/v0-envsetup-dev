@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, Send } from "lucide-react"
 import { toast } from "sonner"
+import type { Newsletter } from "@/lib/email-templates"
 
-export function SendNewsletterForm({ newsletter, subscriberCount }: { newsletter: any; subscriberCount: number }) {
+export function SendNewsletterForm({ newsletter, subscriberCount }: { newsletter: Newsletter; subscriberCount: number }) {
   const router = useRouter()
   const [isSending, setIsSending] = useState(false)
 
@@ -35,7 +36,7 @@ export function SendNewsletterForm({ newsletter, subscriberCount }: { newsletter
       toast.success("Newsletter is being sent to subscribers")
       router.push("/admin/newsletters")
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error("Failed to send newsletter")
     } finally {
       setIsSending(false)

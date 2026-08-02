@@ -1,3 +1,14 @@
+interface ChartData {
+  labels: string[]
+  datasets: {
+    label: string
+    data: number[]
+    borderColor: string
+    backgroundColor: string
+    tension: number
+  }[]
+}
+
 // Helper function to generate random numbers within a range
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1) + min)
@@ -22,7 +33,7 @@ function format(date: Date): string {
 }
 
 // Generate random data for visitor trends
-function generateVisitorTrend(startDate: Date, endDate: Date): any {
+function generateVisitorTrend(startDate: Date, endDate: Date): ChartData {
   const dates = getDatesInRange(startDate, endDate)
   const visitors = dates.map(() => randomInt(500, 2000))
   const pageViews = dates.map(() => randomInt(800, 3000))
@@ -49,7 +60,7 @@ function generateVisitorTrend(startDate: Date, endDate: Date): any {
 }
 
 // Generate random data for template trends
-function generateTemplateTrends(startDate: Date, endDate: Date): any {
+function generateTemplateTrends(startDate: Date, endDate: Date): ChartData {
   const dates = getDatesInRange(startDate, endDate)
   const mernData = dates.map(() => randomInt(50, 200))
   const nextjsData = dates.map(() => randomInt(80, 250))
@@ -84,7 +95,7 @@ function generateTemplateTrends(startDate: Date, endDate: Date): any {
 }
 
 // Generate random data for session duration
-function generateSessionDuration(startDate: Date, endDate: Date): any {
+function generateSessionDuration(startDate: Date, endDate: Date): ChartData {
   const dates = getDatesInRange(startDate, endDate)
   const durations = dates.map(() => randomInt(120, 480))
 
@@ -103,7 +114,7 @@ function generateSessionDuration(startDate: Date, endDate: Date): any {
 }
 
 // Generate random data for bounce rate
-function generateBounceRate(startDate: Date, endDate: Date): any {
+function generateBounceRate(startDate: Date, endDate: Date): ChartData {
   const dates = getDatesInRange(startDate, endDate)
   const rates = dates.map(() => randomInt(20, 60))
 

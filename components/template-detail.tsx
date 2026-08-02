@@ -172,7 +172,7 @@ Generated with ❤️ by [EnvSetup.dev](https://envsetup.dev)`
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Get This Template</CardTitle>
-            <CardDescription>Choose how you'd like to use this template in your project</CardDescription>
+            <CardDescription>Choose how you&apos;d like to use this template in your project</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -223,7 +223,7 @@ Generated with ❤️ by [EnvSetup.dev](https://envsetup.dev)`
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>What's Included</CardTitle>
+                  <CardTitle>What&apos;s Included</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">

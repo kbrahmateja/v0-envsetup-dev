@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { generateText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
 import { type NextRequest, NextResponse } from "next/server"
@@ -202,7 +201,7 @@ Guidelines:
           model,
           system: systemPrompt,
           messages,
-          maxTokens: 400,
+          maxOutputTokens: 400,
         })
 
         if (text?.trim()) {

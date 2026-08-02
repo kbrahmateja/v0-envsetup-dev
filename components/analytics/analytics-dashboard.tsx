@@ -13,7 +13,9 @@ import DateRangePicker from "./date-range-picker"
 import { mockAnalyticsData } from "@/lib/analytics-data"
 
 export default function AnalyticsDashboard() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+  // TODO: this dashboard renders mockAnalyticsData regardless of the selected range —
+  // dateRange isn't wired into any real query yet, so only the setter is used here.
+  const [, setDateRange] = useState<DateRange | undefined>({
     from: new Date(2024, 0, 1),
     to: new Date(),
   })

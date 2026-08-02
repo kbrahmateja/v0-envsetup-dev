@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export function VisitorsChart() {
-  const [chartData, setChartData] = useState<any[]>([])
+  const [chartData, setChartData] = useState<{ date: string; visits: number }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

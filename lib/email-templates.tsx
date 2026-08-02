@@ -6,6 +6,21 @@ export type EmailTemplate = {
   category: "announcement" | "update" | "promotional" | "minimal"
 }
 
+export interface Newsletter {
+  id: number
+  title: string
+  subject: string
+  content: string
+  html_content: string | null
+  status: string
+  template: string
+  scheduled_at: string | null
+  sent_at: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
 export const emailTemplates: EmailTemplate[] = [
   {
     id: "modern-announcement",
@@ -201,5 +216,10 @@ export function generateEmailHTML(template: string, subject: string, content: st
     `,
   }
 
-  return templates[template] || templates["simple-update"]
+  const html = templates[template] || templates["simple-update"]
+  if (!preheader) return html
+
+  // Hidden preheader text shown in inbox previews (Gmail/Outlook) before the email is opened.
+  const preheaderSnippet = `<div style="display:none;max-height:0;overflow:hidden;">${preheader}</div>`
+  return html.replace("<body>", `<body>\n${preheaderSnippet}`)
 }

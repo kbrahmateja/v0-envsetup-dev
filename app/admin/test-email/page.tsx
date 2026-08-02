@@ -8,7 +8,11 @@ import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react"
 
 export default function TestEmailPage() {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ success: boolean; message: string; stats?: any } | null>(null)
+  const [result, setResult] = useState<{
+    success: boolean
+    message: string
+    stats?: { newSubscribers: number; totalVisitors: number }
+  } | null>(null)
 
   const testDailySummary = async () => {
     setLoading(true)
@@ -23,7 +27,7 @@ export default function TestEmailPage() {
       } else {
         setResult({ success: false, message: data.error || "Failed to send email" })
       }
-    } catch (error) {
+    } catch {
       setResult({ success: false, message: "Network error - could not connect to server" })
     } finally {
       setLoading(false)
@@ -42,7 +46,7 @@ export default function TestEmailPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">This will send a test email with today's statistics:</p>
+            <p className="text-sm text-muted-foreground">This will send a test email with today&apos;s statistics:</p>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 ml-2">
               <li>Number of new subscribers today</li>
               <li>Total visitors today</li>

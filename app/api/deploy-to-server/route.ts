@@ -1,7 +1,7 @@
 import type { EnvironmentConfig } from "@/lib/deployment-config"
 
 export async function POST(req: Request) {
-  const { config, credentials }: { config: EnvironmentConfig; credentials: any } = await req.json()
+  const { config, credentials }: { config: EnvironmentConfig; credentials?: { host?: string } } = await req.json()
 
   // Simulate deployment process
   // In production, this would use SSH, kubectl, or cloud provider APIs

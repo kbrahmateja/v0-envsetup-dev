@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import useEmblaCarousel from "embla-carousel-react"
-import { ChevronLeft, ChevronRight, Rocket, Cloud, Terminal, ShieldCheck, TrendingUp, Home, ArrowRight, Sparkles, Play, Pause } from "lucide-react"
+import { ChevronLeft, ChevronRight, Rocket, Cloud, Terminal, ShieldCheck, TrendingUp, Home, Sparkles, Play, Pause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import PresentationSlide from "@/components/presentation-slide"
 import Link from "next/link"

@@ -55,7 +55,7 @@ export async function GET() {
     }
 
     const count = await sql`SELECT COUNT(*) as total FROM version_tracking`
-    return Response.json({ success: true, total: (count as any[])[0]?.total, seeded })
+    return Response.json({ success: true, total: (count as { total: string }[])[0]?.total, seeded })
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 })
   }

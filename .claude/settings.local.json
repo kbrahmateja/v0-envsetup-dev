@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel --version)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel link *)",
+      "Bash(vercel env *)",
+      "Bash(vercel teams *)",
+      "Bash(vercel project *)",
+      "Bash(vercel domains *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel inspect *)",
+      "Bash(git fetch *)",
+      "Bash(gh api *)",
+      "Bash(python3 -c ' *)",
+      "Bash(jq -r '.[] | \"\\\\\\(.created_at\\) env=\\\\\\(.environment\\) sha=\\\\\\(.sha[0:7]\\)\"')",
+      "Bash(vercel git *)",
+      "Bash(cp -r /tmp/.vercel-backup-hn .vercel)",
+      "Bash(rm -rf /tmp/.vercel-backup-hn)",
+      "Bash(npm view *)",
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(npm audit *)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(npm ls *)"
+    ]
+  }
+}

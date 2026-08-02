@@ -149,7 +149,7 @@ export default function EnvironmentPreview({ projectData }: EnvironmentPreviewPr
       <Card>
         <CardHeader>
           <CardTitle>Download Your Environment</CardTitle>
-          <CardDescription>Choose how you'd like to get your development environment</CardDescription>
+          <CardDescription>Choose how you&apos;d like to get your development environment</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

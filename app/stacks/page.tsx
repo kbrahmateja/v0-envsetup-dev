@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -201,7 +200,6 @@ export default function StacksPage() {
 
   const totalSupported = Object.values(stacks).reduce((acc, s) =>
     acc + s.frameworks.filter(f => f.supported).length, 0)
-  const totalFrameworks = Object.values(stacks).reduce((acc, s) => acc + s.frameworks.length, 0)
 
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault()

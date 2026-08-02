@@ -1,17 +1,18 @@
 import { sql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import { SendNewsletterForm } from "@/components/admin/send-newsletter-form"
+import type { Newsletter } from "@/lib/email-templates"
 
 export const dynamic = "force-dynamic"
 
 export default async function SendNewsletterPage({ params }: { params: { id: string } }) {
 
 
-  let newsletters
+  let newsletters: Newsletter[]
   try {
-    newsletters = await sql`
+    newsletters = (await sql`
       SELECT * FROM newsletters WHERE id = ${params.id}
-    `
+    `) as Newsletter[]
   } catch (error) {
     console.error("Error fetching newsletter:", error)
     redirect("/admin/newsletters")

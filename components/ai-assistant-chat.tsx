@@ -30,7 +30,10 @@ export function AIAssistantChat() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isRateLimited, setIsRateLimited] = useState(false)
-  const [envConfig, setEnvConfig] = useState<EnvironmentConfig | null>(null)
+  // TODO: never set — the "download detected stack" card/dialog below (envConfig &&)
+  // is currently permanently dead code. Needs the AI response to be parsed into a
+  // structured EnvironmentConfig before this can ever populate.
+  const [envConfig] = useState<EnvironmentConfig | null>(null)
   const [showDeployment, setShowDeployment] = useState(false)
   // One id per conversation (resets on page reload) — lets the server count this
   // as a single "session" against the daily/weekly free-tier limit.

@@ -7,7 +7,7 @@ function createDbClient(): NeonQueryFunction<false, false> {
     if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
       console.warn("DATABASE_URL is missing. SQL queries will fail.")
     }
-    return ((..._args: unknown[]) => {
+    return (() => {
       throw new Error("DATABASE_URL is not configured.")
     }) as unknown as NeonQueryFunction<false, false>
   }

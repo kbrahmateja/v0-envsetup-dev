@@ -4,15 +4,15 @@ import { formatDistanceToNow } from "date-fns"
 
 export async function RecentSubscribers() {
 
-  let subscribers: any[] = []
+  let subscribers: { email: string; subscribed_at: string; status: string }[] = []
 
   try {
-    subscribers = await sql`
+    subscribers = (await sql`
       SELECT email, subscribed_at, status
       FROM subscribers
       ORDER BY subscribed_at DESC
       LIMIT 10
-    `
+    `) as { email: string; subscribed_at: string; status: string }[]
   } catch (error) {
     console.error("Error fetching recent subscribers:", error)
   }

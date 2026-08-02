@@ -10,12 +10,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { emailTemplates, generateEmailHTML } from "@/lib/email-templates"
+import { emailTemplates, generateEmailHTML, type Newsletter } from "@/lib/email-templates"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Eye } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
-export function NewsletterForm({ newsletter }: { newsletter?: any }) {
+export function NewsletterForm({ newsletter }: { newsletter?: Newsletter }) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState(newsletter?.template || "simple-update")
@@ -49,7 +49,7 @@ export function NewsletterForm({ newsletter }: { newsletter?: any }) {
       toast.success(status === "draft" ? "Newsletter saved as draft" : "Newsletter created successfully")
       router.push("/admin/newsletters")
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error("Failed to save newsletter")
     } finally {
       setIsSubmitting(false)

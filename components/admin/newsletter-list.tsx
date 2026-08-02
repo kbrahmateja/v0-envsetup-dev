@@ -5,21 +5,22 @@ import { Button } from "@/components/ui/button"
 import { Edit, Send } from "lucide-react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
+import type { Newsletter } from "@/lib/email-templates"
 
 export async function NewsletterList() {
 
-  let newsletters: any[] = []
+  let newsletters: (Newsletter & { sent_count: string })[] = []
 
   try {
-    newsletters = await sql`
-      SELECT 
+    newsletters = (await sql`
+      SELECT
         n.*,
         COUNT(ns.id) as sent_count
       FROM newsletters n
       LEFT JOIN newsletter_sends ns ON n.id = ns.newsletter_id AND ns.status = 'sent'
       GROUP BY n.id
       ORDER BY n.created_at DESC
-    `
+    `) as (Newsletter & { sent_count: string })[]
   } catch (error) {
     console.error("Error fetching newsletters:", error)
   }

@@ -1,5 +1,4 @@
 import { sql } from "@/lib/db"
-import { NextResponse } from "next/server"
 
 const knowledge = [
   { category: "language", tags: ["java","spring boot","jvm","enterprise"], title: "Java Spring Boot", content: "Java Spring Boot 3.2 with PostgreSQL. Requires Java 17+. Docker: eclipse-temurin:21-jdk-alpine. Maven/Gradle build. Spring Security for auth, Spring Data JPA ORM. Port 8080. Environment variables: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD." },
@@ -37,7 +36,7 @@ const knowledge = [
 
 export const maxDuration = 30
 
-export async function GET(_req: Request) {
+export async function GET() {
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS knowledge_base (
@@ -79,7 +78,7 @@ export async function GET(_req: Request) {
     }
 
     const rows = await sql`SELECT COUNT(*) as total FROM knowledge_base`
-    return Response.json({ success: true, total: (rows as any[])[0]?.total, seeded: knowledge.length })
+    return Response.json({ success: true, total: (rows as { total: string }[])[0]?.total, seeded: knowledge.length })
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 })
   }

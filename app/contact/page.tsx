@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Github, Terminal } from "lucide-react"
 import Link from "next/link"
@@ -8,7 +7,7 @@ export default function ContactPage() {
     <div className="container mx-auto px-4 py-16 max-w-2xl">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-        <p className="text-muted-foreground text-lg">Questions, feedback, or enterprise plans? We'd love to hear from you.</p>
+        <p className="text-muted-foreground text-lg">Questions, feedback, or enterprise plans? We&apos;d love to hear from you.</p>
       </div>
 
       <div className="grid gap-6">

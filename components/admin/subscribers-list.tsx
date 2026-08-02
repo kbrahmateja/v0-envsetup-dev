@@ -6,14 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export async function SubscribersList() {
 
-  let subscribers: any[] = []
+  let subscribers: { id: number; email: string; status: string; subscribed_at: string }[] = []
 
   try {
-    subscribers = await sql`
+    subscribers = (await sql`
       SELECT * FROM subscribers
       ORDER BY subscribed_at DESC
       LIMIT 100
-    `
+    `) as { id: number; email: string; status: string; subscribed_at: string }[]
   } catch (error) {
     console.error("Error fetching subscribers list:", error)
   }

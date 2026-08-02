@@ -116,7 +116,7 @@ export function DeploymentDialog({ open, onOpenChange, config }: DeploymentDialo
             <p className="text-center text-sm text-muted-foreground">{deploymentProgress}% complete</p>
           </div>
         ) : (
-          <Tabs value={serverType} onValueChange={(v) => setServerType(v as any)} className="w-full">
+          <Tabs value={serverType} onValueChange={(v) => setServerType(v as typeof serverType)} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="cloud">
                 <Cloud className="h-4 w-4 mr-2" />

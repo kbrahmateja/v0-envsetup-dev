@@ -101,10 +101,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const packages = await sql`SELECT * FROM version_tracking`
+  interface VersionTrackingRow {
+    id: number
+    ecosystem: string
+    package_name: string
+    display_name: string
+    current_version: string | null
+  }
+
+  const packages = (await sql`SELECT * FROM version_tracking`) as VersionTrackingRow[]
   const results = []
 
-  for (const pkg of packages as any[]) {
+  for (const pkg of packages) {
     let latest: string | null = null
     const { ecosystem, package_name, display_name, current_version, id } = pkg
 
@@ -122,5 +130,5 @@ export async function GET(req: Request) {
     if (isNew) results.push({ package: display_name, from: current_version, to: latest })
   }
 
-  return NextResponse.json({ checked: (packages as any[]).length, newVersions: results.length, updates: results })
+  return NextResponse.json({ checked: packages.length, newVersions: results.length, updates: results })
 }

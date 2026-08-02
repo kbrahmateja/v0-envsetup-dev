@@ -20,7 +20,7 @@ export async function GET() {
     return NextResponse.json({
       newVersions,
       allVersions,
-      total: (allVersions as any[]).length
+      total: allVersions.length
     })
   } catch (err) {
     console.error("versions API error:", err)

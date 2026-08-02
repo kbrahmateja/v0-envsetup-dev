@@ -9,7 +9,6 @@ import Link from "next/link"
 
 export default function WaitlistPage() {
   const [email, setEmail] = useState("")
-  const [plan, setPlan] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
 

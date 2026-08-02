@@ -113,12 +113,12 @@ export async function GET() {
       },
       emailId: brevoData.messageId,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error sending daily summary:", error)
     return NextResponse.json(
       {
         error: "Failed to send daily summary",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
     )

@@ -132,7 +132,7 @@ export default function PricingPage() {
             <div className="text-left">
               <h3 className="font-semibold mb-2">What happens if I exceed my limits?</h3>
               <p className="text-muted-foreground">
-                On the free plan, you'll be prompted to upgrade. Pro and Team plans have no limits.
+                On the free plan, you&apos;ll be prompted to upgrade. Pro and Team plans have no limits.
               </p>
             </div>
 

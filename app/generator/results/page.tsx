@@ -59,7 +59,7 @@ function ResultsContent() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4">Your Environment is Ready!</h1>
             <p className="text-xl text-muted-foreground">
-              Here's your customized development environment for {projectData.projectName}
+              Here&apos;s your customized development environment for {projectData.projectName}
             </p>
           </div>
 
