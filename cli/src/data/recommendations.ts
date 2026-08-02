@@ -459,10 +459,17 @@ export function getAllStackTools(
     icon: '🐳',
     tools: [
       { value: 'docker', label: 'Docker + Compose', hint: 'Containerization', recommended: true },
-      { value: 'kubernetes', label: 'Kubernetes', hint: 'Container orchestration' },
+      { value: 'kubernetes', label: 'Kubernetes', hint: 'Container orchestration · k8s manifests' },
+      { value: 'helm', label: 'Helm', hint: 'Kubernetes package manager' },
+      { value: 'argo-cd', label: 'ArgoCD', hint: 'GitOps · Kubernetes CD' },
       { value: 'terraform', label: 'Terraform', hint: 'Infrastructure as Code' },
       { value: 'ansible', label: 'Ansible', hint: 'Configuration management' },
-      { value: 'helm', label: 'Helm', hint: 'Kubernetes package manager' },
+      { value: 'nginx', label: 'Nginx', hint: 'Reverse proxy · load balancer' },
+      { value: 'traefik', label: 'Traefik', hint: 'Cloud-native reverse proxy · auto TLS' },
+      { value: 'redis', label: 'Redis', hint: 'Caching · sessions · pub-sub' },
+      { value: 'kafka', label: 'Apache Kafka', hint: 'High-throughput message streaming' },
+      { value: 'rabbitmq', label: 'RabbitMQ', hint: 'Message queue · AMQP' },
+      { value: 'celery', label: 'Celery', hint: 'Distributed task queue · Python', ...(language === 'python' ? { recommended: true } : {}) },
     ]
   })
 
@@ -475,6 +482,7 @@ export function getAllStackTools(
       { value: 'grafana', label: 'Prometheus + Grafana', hint: 'Metrics dashboard' },
       { value: 'datadog', label: 'Datadog', hint: 'Full observability platform' },
       { value: 'opentelemetry', label: 'OpenTelemetry', hint: 'Distributed tracing · standard' },
+      { value: 'jaeger', label: 'Jaeger', hint: 'Distributed tracing · open source' },
       { value: 'elastic-apm', label: 'Elastic APM', hint: 'Application performance monitoring' },
       ...(isMobile ? [
         { value: 'firebase-crashlytics', label: 'Firebase Crashlytics', hint: 'Mobile crash reporting', recommended: true },

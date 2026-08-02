@@ -112,9 +112,24 @@ const ALL_STACKS: Record<string, { label: string; category: string; check: strin
     { label: 'Docker',          category: 'DevOps', check: 'docker --version',         install: 'https://docker.com/' },
     { label: 'Docker Compose',  category: 'DevOps', check: 'docker compose version',   install: 'Included with Docker Desktop' },
     { label: 'kubectl',         category: 'DevOps', check: 'kubectl version --client', install: 'https://kubernetes.io/docs/tasks/tools/' },
+    { label: 'Helm',            category: 'DevOps', check: 'helm version',             install: 'https://helm.sh/' },
+    { label: 'ArgoCD CLI',      category: 'DevOps', check: 'argocd version --client',  install: 'https://argo-cd.readthedocs.io/' },
+    { label: 'Terraform',       category: 'DevOps', check: 'terraform version',        install: 'https://developer.hashicorp.com/terraform/' },
+    { label: 'Ansible',         category: 'DevOps', check: 'ansible --version',        install: 'pip install ansible' },
     { label: 'Podman',          category: 'DevOps', check: 'podman --version',         install: 'https://podman.io/' },
     { label: 'GitHub CLI',      category: 'DevOps', check: 'gh --version',             install: 'https://cli.github.com/' },
     { label: 'jq',              category: 'DevOps', check: 'jq --version',             install: 'brew install jq / apt install jq' },
+  ],
+
+  // ── Infrastructure & Messaging ─────────────────────────────────────────
+  'Infrastructure & Messaging': [
+    { label: 'Nginx',           category: 'Infra', check: 'nginx -v 2>&1',             install: 'brew install nginx / apt install nginx' },
+    { label: 'Traefik',         category: 'Infra', check: 'traefik version',           install: 'https://traefik.io/' },
+    { label: 'Redis CLI',       category: 'Infra', check: 'redis-cli --version',       install: 'brew install redis / apt install redis-tools' },
+    { label: 'Kafka (bin)',     category: 'Infra', check: 'kafka-topics.sh --version', install: 'https://kafka.apache.org/ or docker-compose' },
+    { label: 'RabbitMQ',        category: 'Infra', check: 'rabbitmqctl version',       install: 'brew install rabbitmq / docker-compose' },
+    { label: 'Celery',          category: 'Infra', check: 'celery --version',          install: 'pip install celery' },
+    { label: 'Jaeger',          category: 'Infra', check: 'jaeger-all-in-one --version 2>&1', install: 'https://jaegertracing.io/ or docker run jaegertracing/all-in-one' },
   ],
 }
 
