@@ -48,6 +48,18 @@ const universalTools = [
   { id: "github-actions", label: "GitHub Actions" },
 ]
 
+// Infrastructure tools — language-agnostic, shown as a separate section.
+const infraTools = [
+  { id: "kubernetes", label: "Kubernetes" },
+  { id: "nginx",      label: "Nginx" },
+  { id: "traefik",    label: "Traefik" },
+  { id: "kafka",      label: "Apache Kafka" },
+  { id: "rabbitmq",   label: "RabbitMQ" },
+  { id: "redis-infra", label: "Redis (cache)" },
+  { id: "helm",       label: "Helm" },
+  { id: "argo-cd",    label: "ArgoCD" },
+]
+
 // Tools only meaningful for specific languages — shown in addition to the
 // universal ones once a matching language is selected.
 const toolsByLanguage: Record<string, { id: string; label: string }[]> = {
@@ -233,6 +245,25 @@ export default function GeneratorForm() {
             )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {getAvailableTools(formData.language).map((tool) => (
+                <div key={tool.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={tool.id}
+                    checked={formData.tools.includes(tool.id)}
+                    onCheckedChange={(checked) => handleToolChange(tool.id, checked as boolean)}
+                  />
+                  <Label htmlFor={tool.id} className="text-sm font-normal">
+                    {tool.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Label>Infrastructure & Messaging</Label>
+            <p className="text-xs text-muted-foreground">Generates ready-to-use config files (k8s manifests, nginx.conf, kafka-compose.yml, etc.)</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {infraTools.map((tool) => (
                 <div key={tool.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={tool.id}

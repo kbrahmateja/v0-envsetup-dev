@@ -481,6 +481,306 @@ end
 `
   }
 
+  // ── Infrastructure & Messaging ──────────────────────────────────────────────
+  const appPort = ["python"].includes(lang) ? 8000 : ["go","rust","java","kotlin","csharp","elixir"].includes(lang) ? 8080 : 3000
+  const projName = config.projectName || "myapp"
+
+  if (selected.has("kubernetes")) {
+    files["k8s/deployment.yaml"] = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${projName}
+  labels:
+    app: ${projName}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ${projName}
+  template:
+    metadata:
+      labels:
+        app: ${projName}
+    spec:
+      containers:
+        - name: ${projName}
+          image: ${projName}:latest
+          ports:
+            - containerPort: ${appPort}
+          envFrom:
+            - secretRef:
+                name: ${projName}-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: ${appPort}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+`
+    files["k8s/service.yaml"] = `apiVersion: v1
+kind: Service
+metadata:
+  name: ${projName}-svc
+spec:
+  selector:
+    app: ${projName}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: ${appPort}
+  type: ClusterIP
+`
+    files["k8s/ingress.yaml"] = `apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${projName}-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - yourdomain.com
+      secretName: ${projName}-tls
+  rules:
+    - host: yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${projName}-svc
+                port:
+                  number: 80
+`
+    files["k8s/hpa.yaml"] = `apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${projName}-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${projName}
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+`
+    files["k8s/secret.yaml"] = `apiVersion: v1
+kind: Secret
+metadata:
+  name: ${projName}-secrets
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://user:pass@postgres:5432/${projName}"
+  SECRET_KEY: "change-me-in-production"
+`
+  }
+
+  if (selected.has("nginx")) {
+    files["nginx/nginx.conf"] = `events {
+  worker_connections 1024;
+}
+
+http {
+  upstream app {
+    least_conn;
+    server app:${appPort};
+  }
+
+  limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+  limit_conn_zone $binary_remote_addr zone=conn:10m;
+
+  server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+  }
+
+  server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+
+    ssl_certificate     /etc/nginx/certs/cert.pem;
+    ssl_certificate_key /etc/nginx/certs/key.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location /api/ {
+      limit_req zone=api burst=20 nodelay;
+      limit_conn conn 10;
+      proxy_pass http://app;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+      proxy_pass http://app;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+    }
+  }
+}
+`
+  }
+
+  if (selected.has("traefik")) {
+    files["traefik/traefik.yml"] = `api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: your@email.com
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: /traefik/dynamic
+
+log:
+  level: INFO
+`
+    files["traefik/dynamic.yml"] = `http:
+  middlewares:
+    rateLimit:
+      rateLimit:
+        average: 100
+        burst: 50
+    secureHeaders:
+      headers:
+        sslRedirect: true
+        stsSeconds: 31536000
+        contentTypeNosniff: true
+        browserXssFilter: true
+`
+  }
+
+  if (selected.has("kafka")) {
+    files["kafka-compose.yml"] = `# Add these services to your docker-compose.yml
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+`
+  }
+
+  if (selected.has("rabbitmq")) {
+    files["rabbitmq-compose.yml"] = `# Add these services to your docker-compose.yml
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  rabbitmq_data:
+`
+  }
+
+  if (selected.has("redis-infra")) {
+    files["redis.conf"] = `# Redis configuration
+bind 127.0.0.1
+port 6379
+maxmemory 256mb
+maxmemory-policy allkeys-lru
+save 900 1
+save 300 10
+save 60 10000
+`
+  }
+
+  if (selected.has("argo-cd")) {
+    files["argocd/application.yaml"] = `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${projName}
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/${projName}.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${projName}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+`
+  }
+
   if (selected.has("phpunit") && lang === "php") {
     files["phpunit.xml"] = `<?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="vendor/autoload.php">
