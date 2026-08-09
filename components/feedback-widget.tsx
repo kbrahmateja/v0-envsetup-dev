@@ -108,7 +108,7 @@ export default function FeedbackWidget() {
             <DialogHeader>
               <DialogTitle>Got a suggestion?</DialogTitle>
               <DialogDescription>
-                Tell us what you'd like to see, or what's not working. It goes straight to our team.
+                Tell us what you&apos;d like to see, or what&apos;s not working. It goes straight to our team.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -124,7 +124,7 @@ export default function FeedbackWidget() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="feedback-email">Email (optional, if you'd like a reply)</Label>
+                <Label htmlFor="feedback-email">Email (optional, if you&apos;d like a reply)</Label>
                 <Input
                   id="feedback-email"
                   type="email"
