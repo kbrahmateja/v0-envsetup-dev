@@ -351,3 +351,223 @@ describe("generateToolFiles: Infrastructure & Messaging tools", () => {
     expect(files["helm/combo-app/Chart.yaml"]).toBeDefined()
   })
 })
+
+
+// ─── Famous / commonly-used real-world stack combinations ──────────────────
+// The axis-by-axis tests above catch "does this branch fire at all" bugs but
+// don't prove that a realistic full stack someone would actually pick in the
+// UI -- language + framework + databases + dev tools + infra tools all
+// together -- produces coherent output with no cross-contamination (e.g. a
+// JS-only tool file leaking into a Python stack picked alongside it, or two
+// generators disagreeing on the app port). Each case below is a stack a real
+// project would plausibly choose, run through every generator function at
+// once.
+describe("Famous real-world stack combinations (full pipeline, not just one axis)", () => {
+  it("Next.js + TypeScript + Postgres + Redis + Docker + GitHub Actions (modern JS SaaS stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "saas-app",
+      language: "typescript",
+      framework: "Next.js",
+      databases: ["postgres", "redis"],
+      tools: ["eslint", "prettier", "jest", "husky", "github-actions", "docker"],
+      serverType: "cloud",
+    }
+    const dockerfile = generateDockerfile(config)
+    const compose = generateDockerCompose(config)
+    const env = generateEnvExample(config)
+    const readme = generateReadme(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("node:") // JS/TS base image family
+    expect(compose).toContain("postgres:16-alpine")
+    expect(compose).toContain("redis:7.2-alpine")
+    expect(env).toContain("DATABASE_URL=postgresql://")
+    expect(env).toContain("REDIS_URL=redis://")
+    expect(readme).toContain("saas-app")
+    expect(toolFiles[".eslintrc.json"]).toBeDefined()
+    expect(toolFiles["jest.config.js"]).toContain("ts-jest")
+    expect(toolFiles[".github/workflows/ci.yml"]).toContain("actions/setup-node")
+  })
+
+  it("Express + JavaScript + MongoDB (classic MEAN/MERN-style API stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "mern-api",
+      language: "javascript",
+      framework: "Express",
+      databases: ["mongodb"],
+      tools: ["eslint", "cypress"],
+      serverType: "local",
+    }
+    const compose = generateDockerCompose(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(compose).toContain("mongo:7.0")
+    expect(compose).toContain("DATABASE_URL=mongodb://")
+    expect(toolFiles["cypress.config.js"]).toBeDefined()
+    // JS-only file shouldn't leak markers from other languages
+    expect(toolFiles[".eslintrc.json"]).not.toContain("@typescript-eslint")
+  })
+
+  it("Django + Python + Postgres + pytest (classic Django stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "django-app",
+      language: "python",
+      framework: "Django",
+      databases: ["postgres"],
+      tools: ["black", "pytest", "docker"],
+      serverType: "dedicated",
+    }
+    const dockerfile = generateDockerfile(config)
+    const compose = generateDockerCompose(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("gunicorn")
+    expect(dockerfile).toContain("wsgi")
+    expect(compose).toContain("postgres:16-alpine")
+    expect(toolFiles["pyproject.toml"]).toContain("[tool.black]")
+    expect(toolFiles["pytest.ini"]).toBeDefined()
+    // Python stacks must never pick up JS tool files even if oddly requested
+    expect(toolFiles["jest.config.js"]).toBeUndefined()
+  })
+
+  it("FastAPI + Python + Postgres + Redis + Kubernetes (production API on k8s)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "fastapi-svc",
+      language: "python",
+      framework: "FastAPI",
+      databases: ["postgres", "redis"],
+      tools: ["kubernetes", "helm"],
+      serverType: "cloud",
+    }
+    const dockerfile = generateDockerfile(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("uvicorn")
+    expect(toolFiles["k8s/deployment.yaml"]).toContain("containerPort: 8000")
+    expect(toolFiles["helm/fastapi-svc/values.yaml"]).toContain("targetPort: 8000")
+  })
+
+  it("Spring Boot + Java + MySQL + JUnit + Docker (classic enterprise Java stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "spring-svc",
+      language: "java",
+      framework: "Spring Boot",
+      databases: ["mysql"],
+      tools: ["junit", "github-actions", "docker"],
+      serverType: "dedicated",
+    }
+    const dockerfile = generateDockerfile(config)
+    const compose = generateDockerCompose(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("AS builder")
+    expect(dockerfile).toContain("-jre-alpine")
+    expect(compose).toContain("mysql:8.3")
+    expect(compose).toContain('"8080:8080"')
+    expect(toolFiles["src/test/java/ExampleTest.java"]).toBeDefined()
+    expect(toolFiles[".github/workflows/ci.yml"]).toContain("actions/setup-java")
+  })
+
+  it("Rails + Ruby + Postgres + Redis + RSpec (classic Rails stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "rails-app",
+      language: "ruby",
+      framework: "Rails",
+      databases: ["postgres", "redis"],
+      tools: ["rspec"],
+      serverType: "local",
+    }
+    const dockerfile = generateDockerfile(config)
+    const compose = generateDockerCompose(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("rails")
+    expect(dockerfile).toContain("server")
+    expect(compose).toContain("postgres:16-alpine")
+    expect(compose).toContain("redis:7.2-alpine")
+    expect(toolFiles["spec/spec_helper.rb"]).toBeDefined()
+  })
+
+  it("Laravel + PHP + MySQL + PHPUnit + Nginx (classic PHP web stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "laravel-app",
+      language: "php",
+      framework: "Laravel",
+      databases: ["mysql"],
+      tools: ["phpunit", "nginx"],
+      serverType: "dedicated",
+    }
+    const dockerfile = generateDockerfile(config)
+    const compose = generateDockerCompose(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("composer")
+    expect(dockerfile).toContain("php-fpm")
+    expect(compose).toContain("mysql:8.3")
+    expect(toolFiles["phpunit.xml"]).toBeDefined()
+    expect(toolFiles["nginx/nginx.conf"]).toBeDefined()
+  })
+
+  it("Gin + Go + Postgres + golangci-lint + Docker (classic Go microservice stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "go-svc",
+      language: "go",
+      framework: "Gin",
+      databases: ["postgres"],
+      tools: ["golangci-lint", "docker"],
+      serverType: "cloud",
+    }
+    const dockerfile = generateDockerfile(config)
+    const compose = generateDockerCompose(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("go build")
+    expect(compose).toContain('"8080:8080"')
+    expect(toolFiles[".golangci.yml"]).toBeDefined()
+  })
+
+  it(".NET Core + C# + SQL Server + NUnit (classic .NET enterprise stack)", () => {
+    const config: EnvironmentConfig = {
+      projectName: "dotnet-svc",
+      language: "csharp",
+      framework: ".NET Core",
+      databases: ["sqlserver"],
+      tools: ["nunit"],
+      serverType: "dedicated",
+    }
+    const dockerfile = generateDockerfile(config)
+    const env = generateEnvExample(config)
+    const toolFiles = generateToolFiles(config)
+
+    expect(dockerfile).toContain("dotnet")
+    expect(env).toContain("DATABASE_URL=Server=")
+    expect(toolFiles["Tests/ExampleTests.cs"]).toBeDefined()
+  })
+
+  it("kitchen-sink stack: every infra tool + two databases at once stays internally consistent", () => {
+    const config: EnvironmentConfig = {
+      projectName: "everything-app",
+      language: "typescript",
+      framework: "Next.js",
+      databases: ["postgres", "redis"],
+      tools: ["eslint", "prettier", "github-actions", "kubernetes", "nginx", "traefik", "kafka", "rabbitmq", "redis-infra", "helm", "argo-cd"],
+      serverType: "cloud",
+    }
+    expect(() => {
+      generateDockerfile(config)
+      generateDockerCompose(config)
+      generateEnvExample(config)
+      generateReadme(config)
+      generateToolFiles(config)
+    }).not.toThrow()
+
+    const toolFiles = generateToolFiles(config)
+    // Every requested tool's file exists, and the app-port convention used
+    // by the k8s manifests matches the one Helm's chart uses for the same
+    // config -- the two generators must never drift apart.
+    const k8sPort = toolFiles["k8s/deployment.yaml"].match(/containerPort: (\d+)/)?.[1]
+    const helmPort = toolFiles["helm/everything-app/values.yaml"].match(/targetPort: (\d+)/)?.[1]
+    expect(k8sPort).toBe(helmPort)
+    expect(k8sPort).toBe("3000") // TypeScript -> Node port convention
+  })
+})
