@@ -20,8 +20,13 @@ test.describe("Generator flow", () => {
     await expect(page).toHaveURL(/\/generator\/results\?/)
     await expect(page.getByText(/Your Environment is Ready/i)).toBeVisible()
 
+    // The results page has TWO "Download ZIP" buttons: the real one here,
+    // and a decorative one inside <EnvironmentPreview> whose handler is a
+    // console.log stub (see components/environment-preview.tsx). Match the
+    // real one by its exact accessible name -- the decorative one has extra
+    // subtext ("Get all files in a ZIP archive") folded into its name.
     const downloadPromise = page.waitForEvent("download")
-    await page.getByRole("button", { name: /Download ZIP/i }).click()
+    await page.getByRole("button", { name: "Download ZIP", exact: true }).click()
     const download = await downloadPromise
 
     expect(download.suggestedFilename()).toBe("e2e-test-project-environment.zip")

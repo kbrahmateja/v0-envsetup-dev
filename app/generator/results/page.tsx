@@ -103,7 +103,7 @@ function ResultsContent() {
             </CardContent>
           </Card>
 
-          <EnvironmentPreview projectData={projectData} />
+          <EnvironmentPreview projectData={projectData} onDownloadZip={handleDownload} />
 
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Button onClick={handleDownload} className="flex items-center gap-2">

@@ -18,9 +18,13 @@ interface ProjectData {
 
 interface EnvironmentPreviewProps {
   projectData: ProjectData
+  // Real ZIP download handler, wired in by the results page. Optional so
+  // this component still renders (falling back to a console.log stub)
+  // if ever reused somewhere that hasn't wired a real download yet.
+  onDownloadZip?: () => void | Promise<void>
 }
 
-export default function EnvironmentPreview({ projectData }: EnvironmentPreviewProps) {
+export default function EnvironmentPreview({ projectData, onDownloadZip }: EnvironmentPreviewProps) {
   const [copied, setCopied] = useState(false)
 
   const generateFileStructure = () => {
@@ -107,10 +111,12 @@ export default function EnvironmentPreview({ projectData }: EnvironmentPreviewPr
   const handleDownload = (type: "zip" | "github" | "cli") => {
     trackDownload(type, `${projectData.language}-${projectData.framework || "basic"}`)
 
-    // Simulate download/action
     if (type === "zip") {
-      // In a real app, this would trigger a ZIP download
-      console.log("Downloading ZIP...")
+      if (onDownloadZip) {
+        onDownloadZip()
+      } else {
+        console.log("Downloading ZIP...")
+      }
     } else if (type === "github") {
       // In a real app, this would create a GitHub repo
       console.log("Creating GitHub repository...")
