@@ -1,0 +1,93 @@
+name: Production Uptime Check
+
+# Catches outages like the ~7-week silent Vercel deploy failure from 2026-05
+# to 2026-07 (see SESSION_HANDOFF.md) — nothing was watching production
+# itself, only CI on push. This pings the live site on a schedule
+# independent of any code changes, and opens/updates a GitHub issue plus
+# fails the run (which GitHub emails to watchers by default) the moment a
+# check fails, rather than waiting for someone to notice.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  ping:
+    name: 🌐 Ping production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check key URLs
+        id: check
+        run: |
+          set +e
+          fail=0
+          report=""
+          for path in "/" "/generator"; do
+            url="https://envsetup.dev${path}"
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url")
+            if [ "$code" -lt 200 ] || [ "$code" -ge 400 ]; then
+              fail=1
+              report="${report}- \`${url}\` returned HTTP ${code}\n"
+            else
+              report="${report}- \`${url}\` OK (HTTP ${code})\n"
+            fi
+          done
+          echo "fail=$fail" >> "$GITHUB_OUTPUT"
+          {
+            echo "report<<EOF"
+            printf "%b" "$report"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Find existing open outage issue
+        id: existing
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          number=$(gh issue list --repo "${{ github.repository }}" --label outage --state open --json number --jq '.[0].number // ""')
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure outage label exists
+        if: steps.check.outputs.fail == '1' && steps.existing.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create outage --repo "${{ github.repository }}" --color "d73a4a" \
+            --description "Production is down or a check is failing" 2>/dev/null || true
+
+      - name: Open or update outage issue
+        if: steps.check.outputs.fail == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          body="Automated uptime check failed at $(date -u +'%Y-%m-%dT%H:%M:%SZ').
+
+          ${{ steps.check.outputs.report }}
+
+          This issue stays open until a check succeeds again. See the \`Production Uptime Check\` workflow run for details."
+          if [ -n "${{ steps.existing.outputs.number }}" ]; then
+            gh issue comment "${{ steps.existing.outputs.number }}" --repo "${{ github.repository }}" --body "$body"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "🔴 Production down: envsetup.dev" \
+              --label outage --body "$body"
+          fi
+
+      - name: Close outage issue if recovered
+        if: steps.check.outputs.fail == '0' && steps.existing.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ steps.existing.outputs.number }}" --repo "${{ github.repository }}" \
+            --body "✅ Recovered as of $(date -u +'%Y-%m-%dT%H:%M:%SZ'). ${{ steps.check.outputs.report }}"
+          gh issue close "${{ steps.existing.outputs.number }}" --repo "${{ github.repository }}"
+
+      - name: Fail the run if any check failed
+        if: steps.check.outputs.fail == '1'
+        run: |
+          echo "${{ steps.check.outputs.report }}"
+          exit 1

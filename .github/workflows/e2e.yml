@@ -1,0 +1,40 @@
+name: E2E Tests (Playwright)
+
+# Deliberately NOT on every push/PR — TESTING_ROADMAP.md Phase 4 calls for
+# this to run nightly/manually since E2E is the slowest, most flaky tier and
+# parts of the product surface (pricing/billing) are still actively changing.
+on:
+  schedule:
+    # Nightly, offset from daily-test.yml's 00:30 UTC run so they don't collide.
+    - cron: '30 1 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    name: 🎭 Playwright E2E
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://test:test@localhost/test"
+      ADMIN_USERNAME: "admin"
+      ADMIN_PASSWORD: "ci-test-password"
+      ADMIN_SESSION_SECRET: "ci-test-session-secret"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+      - name: Run Playwright tests
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
