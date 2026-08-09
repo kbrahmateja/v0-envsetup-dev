@@ -93,6 +93,26 @@ function getAvailableTools(language: string) {
   return [...universalTools, ...(toolsByLanguage[language] ?? [])]
 }
 
+const languageValues = new Set(languages.map((l) => l.value))
+
+// URL params (from the templates page, the AI assistant, or a hand-typed
+// link) are untrusted input -- e.g. ?language=java&framework=Angular would
+// previously be assigned straight into form state with no cross-check,
+// producing a selected language whose framework dropdown doesn't actually
+// offer "Angular" and a downstream generation with a nonsensical combo.
+// Only accept values that are actually valid for the generator.
+export function sanitizeLanguage(value: string | null | undefined): string {
+  const normalized = (value || "").trim().toLowerCase()
+  return languageValues.has(normalized) ? normalized : ""
+}
+
+export function sanitizeFramework(language: string, value: string | null | undefined): string {
+  const validFrameworks = frameworks[language as keyof typeof frameworks]
+  if (!validFrameworks) return ""
+  const normalized = (value || "").trim().toLowerCase()
+  return validFrameworks.some((f) => f.toLowerCase() === normalized) ? normalized : ""
+}
+
 export default function GeneratorForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -108,19 +128,23 @@ export default function GeneratorForm() {
           "Java": "java", "Go": "go", "PHP": "php", "Ruby": "ruby"
         }
         const firstTag = t.tags?.[0] || ""
+        const language = sanitizeLanguage(langMap[firstTag] || searchParams?.get("language"))
+        const framework = sanitizeFramework(language, t.tags?.[1] || searchParams?.get("framework"))
         return {
           projectName: t.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
-          language: langMap[firstTag] || searchParams?.get("language") || "",
-          framework: t.tags?.[1]?.toLowerCase() || searchParams?.get("framework") || "",
+          language,
+          framework,
           description: t.description || "",
           tools: [] as string[],
         }
       } catch { /* ignore */ }
     }
+    const language = sanitizeLanguage(searchParams?.get("language"))
+    const framework = sanitizeFramework(language, searchParams?.get("framework"))
     return {
       projectName: searchParams?.get("projectName") || "",
-      language: searchParams?.get("language") || "",
-      framework: searchParams?.get("framework") || "",
+      language,
+      framework,
       description: searchParams?.get("description") || "",
       tools: [] as string[],
     }
