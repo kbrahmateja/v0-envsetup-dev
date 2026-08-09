@@ -11,9 +11,17 @@ interface CheckResult {
   installHint?: string
 }
 
+// Every shell probe below is bounded with a timeout: without one, execSync
+// can hang indefinitely if the underlying command stalls (e.g. a slow/cold
+// Docker daemon), and `doctor` would hang with it. This bit CI directly —
+// GitHub Actions wraps `doctor` in a fixed `timeout 10`, and a hung
+// `docker info` call ate the whole budget and got killed (exit 124)
+// instead of doctor reporting Docker as unavailable and moving on.
+const CHECK_TIMEOUT_MS = 3000
+
 function check(cmd: string, name: string, installHint?: string, optional = false): CheckResult {
   try {
-    const version = execSync(cmd, { stdio: 'pipe' }).toString().trim().split('\n')[0]
+    const version = execSync(cmd, { stdio: 'pipe', timeout: CHECK_TIMEOUT_MS }).toString().trim().split('\n')[0]
     return { name, status: 'ok', version }
   } catch {
     return { name, status: optional ? 'optional' : 'missing', installHint }
@@ -22,12 +30,12 @@ function check(cmd: string, name: string, installHint?: string, optional = false
 
 function checkDocker(): CheckResult {
   try {
-    execSync('docker info', { stdio: 'pipe' })
-    const version = execSync('docker --version', { stdio: 'pipe' }).toString().trim()
+    execSync('docker info', { stdio: 'pipe', timeout: CHECK_TIMEOUT_MS })
+    const version = execSync('docker --version', { stdio: 'pipe', timeout: CHECK_TIMEOUT_MS }).toString().trim()
     return { name: 'Docker (daemon running)', status: 'ok', version }
   } catch {
     try {
-      const version = execSync('docker --version', { stdio: 'pipe' }).toString().trim()
+      const version = execSync('docker --version', { stdio: 'pipe', timeout: CHECK_TIMEOUT_MS }).toString().trim()
       return {
         name: 'Docker (installed but NOT running)',
         status: 'missing',

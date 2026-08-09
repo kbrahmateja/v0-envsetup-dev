@@ -7,10 +7,10 @@ const isLinux = os.platform() === 'linux'
 const isWin = os.platform() === 'win32'
 
 function hasBrew(): boolean {
-  try { execSync('brew --version', { stdio: 'pipe' }); return true } catch { return false }
+  try { execSync('brew --version', { stdio: 'pipe', timeout: 3000 }); return true } catch { return false }
 }
 function hasApt(): boolean {
-  try { execSync('apt --version', { stdio: 'pipe' }); return true } catch { return false }
+  try { execSync('apt --version', { stdio: 'pipe', timeout: 3000 }); return true } catch { return false }
 }
 
 // Install commands per tool per OS
