@@ -781,6 +781,78 @@ spec:
 `
   }
 
+  // "Helm" was checkable in the UI (infraTools list in generator-form.tsx)
+  // but had no handler here at all -- checking it silently produced no
+  // files. Found while writing combination test coverage.
+  if (selected.has("helm")) {
+    files[`helm/${projName}/Chart.yaml`] = `apiVersion: v2
+name: ${projName}
+description: A Helm chart for ${projName}
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+`
+    files[`helm/${projName}/values.yaml`] = `replicaCount: 2
+
+image:
+  repository: ${projName}
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: ${appPort}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: false
+  host: yourdomain.com
+`
+    files[`helm/${projName}/templates/deployment.yaml`] = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-${projName}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ${projName}
+  template:
+    metadata:
+      labels:
+        app: ${projName}
+    spec:
+      containers:
+        - name: ${projName}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+`
+    files[`helm/${projName}/templates/service.yaml`] = `apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-${projName}-svc
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: ${projName}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+`
+  }
+
   if (selected.has("phpunit") && lang === "php") {
     files["phpunit.xml"] = `<?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="vendor/autoload.php">
