@@ -12,6 +12,7 @@ import { Suspense } from "react"
 import Header from "@/components/header"
 import { VersionsBanner } from "@/components/versions-banner"
 import Footer from "@/components/footer"
+import FeedbackWidget from "@/components/feedback-widget"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -79,6 +80,7 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
+          <FeedbackWidget />
         </ThemeProvider>
         <Analytics />
       </body>
