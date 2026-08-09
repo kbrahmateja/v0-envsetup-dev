@@ -1,0 +1,38 @@
+name: Lighthouse Performance Budget
+
+# TESTING_ROADMAP.md Phase 5: run Lighthouse CI against the two pages that
+# matter most for first-impression and core-task speed. Deliberately kept
+# off the per-push path (like e2e.yml) -- Lighthouse scores are noisy
+# run-to-run on shared CI runners, and this is meant as a slow tripwire
+# against real regressions (dependency bloat, an accidentally-huge bundle),
+# not a per-PR gate.
+#
+# Thresholds start at "warn" rather than "error" everywhere: this repo has
+# never had a real Lighthouse run against production before, so there's no
+# baseline yet to set a meaningful pass/fail bar from. Once a few scheduled
+# runs have reported real numbers (check the run summary / the temporary
+# report links each run uploads), tighten the assertions that matter most --
+# almost certainly `categories:performance` -- from "warn" to "error" in
+# lighthouserc.json.
+on:
+  schedule:
+    # Daily, offset from the other scheduled workflows (daily-test.yml runs
+    # at 00:30 UTC, uptime-check.yml every 15 min) so they don't collide.
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  lighthouse:
+    name: 🚦 Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit production URLs with Lighthouse
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://envsetup.dev/
+            https://envsetup.dev/generator
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
