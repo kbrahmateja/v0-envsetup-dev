@@ -192,7 +192,7 @@ export default function GeneratorForm() {
                 }
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger id="language">
                   <SelectValue placeholder="Select a language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -213,7 +213,7 @@ export default function GeneratorForm() {
                 value={formData.framework}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, framework: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="framework">
                   <SelectValue placeholder="Select a framework" />
                 </SelectTrigger>
                 <SelectContent>

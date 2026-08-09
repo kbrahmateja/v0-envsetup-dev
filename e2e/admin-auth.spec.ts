@@ -34,7 +34,9 @@ test.describe("Admin auth flow", () => {
     await page.getByRole("button", { name: /Sign in|Log in|Login/i }).click()
 
     await expect(page).toHaveURL(/\/admin$/)
-    await expect(page.getByText(/Dashboard/i)).toBeVisible()
+    // Several elements contain "Dashboard" (nav link, header, page h1) —
+    // pin to the page's own h1 to avoid a Playwright strict-mode violation.
+    await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible()
 
     // Open the user menu and log out.
     await page.getByTestId("admin-user-menu").click()
