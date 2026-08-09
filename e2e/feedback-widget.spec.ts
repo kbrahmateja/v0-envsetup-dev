@@ -17,7 +17,7 @@ test.describe("Feedback widget", () => {
     await page.getByRole("button", { name: "Send Suggestion" }).click()
 
     await expect(page.getByRole("heading", { name: /Thanks for the suggestion/i })).toBeVisible()
-    await page.getByRole("button", { name: "Close" }).click()
+    await page.getByRole("button", { name: "Done" }).click()
     await expect(page.getByRole("heading", { name: "Got a suggestion?" })).not.toBeVisible()
   })
 })

@@ -100,7 +100,7 @@ export default function FeedbackWidget() {
               <DialogDescription>We read every suggestion and really appreciate it.</DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button onClick={resetAndClose}>Close</Button>
+              <Button onClick={resetAndClose}>Done</Button>
             </DialogFooter>
           </>
         ) : (
