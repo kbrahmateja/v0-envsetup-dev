@@ -247,3 +247,199 @@ jobs:
         run: |
           VERSION=$(node -e "console.log(require('./cli/package.json').version)")
           echo "CLI version: $VERSION"
+
+  # ─────────────────────────────────────────
+  # Job 6: DB Integration Tests
+  # ─────────────────────────────────────────
+  # TESTING_ROADMAP.md Phase 3: test API routes against a REAL database
+  # instead of mocks or the fake `postgresql://test:test@localhost/test`
+  # DATABASE_URL the other jobs use (which just makes every DB-touching route
+  # 500 -- fine for auth-gate checks, not for verifying actual dedupe/insert
+  # logic).
+  #
+  # A plain `postgres` service container does NOT work here: this app's DB
+  # client (`@neondatabase/serverless`'s `neon()`) is an HTTP driver that only
+  # speaks Neon's own protocol -- pointed at vanilla Postgres it fails every
+  # query with "TypeError: fetch failed" (confirmed by hand while building
+  # this job). Neon's own ephemeral-branch GitHub Actions solve this
+  # properly: spin up a real, disposable branch of the actual project for
+  # the run, test against it over its native protocol, delete it when done
+  # -- the same mechanism Neon recommends for PR preview databases.
+  #
+  # Requires a `NEON_API_KEY` repo secret (Neon console -> Account Settings
+  # -> API keys) and a `NEON_PROJECT_ID` repo variable (repo Settings ->
+  # Secrets and variables -> Actions -> Variables tab) -- project id is
+  # "curly-wildflower-53845482" for the v0-envsetup-dev-hn project. The job
+  # is gated on that variable existing so it skips cleanly (not a failure)
+  # rather than breaking CI until those are set up.
+  db-integration-tests:
+    name: 🗄️ DB Integration Tests
+    runs-on: ubuntu-latest
+    if: ${{ vars.NEON_PROJECT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+
+      - name: Create an ephemeral Neon branch for this run
+        id: neon-branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: ci-integration-${{ github.run_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Apply real migrations (same scripts/*.sql used against production) to the branch
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: |
+          set -e
+          for f in \
+            scripts/create-subscribers-table.sql \
+            scripts/create-admin-tables.sql \
+            scripts/create-suggestions-table.sql \
+            scripts/create-ai-usage-table.sql \
+            scripts/add-state-column-to-visitors.sql \
+            scripts/add-template-column-to-newsletters.sql \
+          ; do
+            echo "Applying $f"
+            psql "$DATABASE_URL" -f "$f"
+          done
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url_pooled }}
+          ADMIN_USERNAME: "admin"
+          ADMIN_PASSWORD: "ci-test-password"
+          ADMIN_SESSION_SECRET: "ci-test-session-secret"
+
+      - name: Start server in background
+        run: npx next start -p 3000 &
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url_pooled }}
+          ADMIN_USERNAME: "admin"
+          ADMIN_PASSWORD: "ci-test-password"
+          ADMIN_SESSION_SECRET: "ci-test-session-secret"
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:3000/; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server did not become ready in time"
+          exit 1
+
+      - name: Subscribe -- first submission is treated as new
+        run: |
+          resp=$(curl -s -X POST http://localhost:3000/api/subscribe \
+            -H "Content-Type: application/json" \
+            -d '{"email":"integration-test@example.com"}')
+          echo "$resp"
+          echo "$resp" | grep -qi "subscribing" || (echo "Expected the first-time welcome message" && exit 1)
+
+      - name: Subscribe -- row actually persisted exactly once
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: |
+          count=$(psql "$DATABASE_URL" -tAc \
+            "SELECT COUNT(*) FROM subscribers WHERE email = 'integration-test@example.com'")
+          echo "subscribers rows: $count"
+          [ "$count" = "1" ]
+
+      - name: Subscribe -- duplicate submission is deduped, not a 2nd row
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: |
+          resp=$(curl -s -X POST http://localhost:3000/api/subscribe \
+            -H "Content-Type: application/json" \
+            -d '{"email":"integration-test@example.com"}')
+          echo "$resp"
+          echo "$resp" | grep -qi "patience" || (echo "Expected the returning-subscriber message, not the welcome one" && exit 1)
+          count=$(psql "$DATABASE_URL" -tAc \
+            "SELECT COUNT(*) FROM subscribers WHERE email = 'integration-test@example.com'")
+          [ "$count" = "1" ]
+
+      - name: Subscribe -- invalid email is rejected before touching the DB
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/subscribe \
+            -H "Content-Type: application/json" -d '{"email":"not-an-email"}')
+          [ "$code" = "400" ]
+
+      - name: Suggestions -- valid submission is persisted
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/suggestions \
+            -H "Content-Type: application/json" \
+            -d '{"message":"Add dark mode","email":"integration-test@example.com"}')
+          [ "$code" = "200" ]
+          count=$(psql "$DATABASE_URL" -tAc \
+            "SELECT COUNT(*) FROM suggestions WHERE message = 'Add dark mode'")
+          [ "$count" = "1" ]
+
+      - name: Suggestions -- empty message rejected with 400, nothing written
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: |
+          before=$(psql "$DATABASE_URL" -tAc "SELECT COUNT(*) FROM suggestions")
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/suggestions \
+            -H "Content-Type: application/json" -d '{"message":""}')
+          [ "$code" = "400" ]
+          after=$(psql "$DATABASE_URL" -tAc "SELECT COUNT(*) FROM suggestions")
+          [ "$before" = "$after" ]
+
+      - name: Admin newsletters API -- unauthenticated GET and POST /send are rejected (401)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/admin/newsletters)
+          [ "$code" = "401" ]
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/admin/newsletters/send \
+            -H "Content-Type: application/json" -d '{"newsletterId":1}')
+          [ "$code" = "401" ]
+
+      - name: Admin newsletters API -- authenticated GET returns real data from the DB
+        run: |
+          resp=$(curl -s -i -X POST http://localhost:3000/api/admin/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"ci-test-password"}')
+          cookie=$(echo "$resp" | tr -d '\r' | grep -i "^set-cookie:" | sed -n 's/.*admin_session=\([^;]*\).*/\1/p')
+          if [ -z "$cookie" ]; then echo "No admin_session cookie set on login" && exit 1; fi
+          echo "ADMIN_COOKIE=$cookie" >> "$GITHUB_ENV"
+
+          body=$(curl -s http://localhost:3000/api/admin/newsletters -H "Cookie: admin_session=$cookie")
+          echo "$body"
+          echo "$body" | grep -q '"newsletters":\[\]' || (echo "Expected an empty newsletters array from the real DB" && exit 1)
+
+      - name: Admin newsletters send -- authenticated request against a real (draft) newsletter without a Brevo key configured
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: |
+          newsletter_id=$(psql "$DATABASE_URL" -tAc \
+            "INSERT INTO newsletters (title, subject, content, html_content, status) \
+             VALUES ('Integration test', 'Test subject', 'body', '<p>body</p>', 'draft') RETURNING id;")
+          newsletter_id=$(echo "$newsletter_id" | tr -d '[:space:]')
+          echo "Created newsletter id=$newsletter_id"
+
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/admin/newsletters/send \
+            -H "Content-Type: application/json" -H "Cookie: admin_session=$ADMIN_COOKIE" \
+            -d "{\"newsletterId\":$newsletter_id}")
+          echo "send status: $code"
+          # BREVO_API_KEY is deliberately unset in this job (no real secret needed
+          # to test the auth+DB wiring) -- the route's own guard should reject with
+          # 500 "Email service not configured", not silently succeed or crash.
+          [ "$code" = "500" ]
+
+      - name: Delete the ephemeral Neon branch
+        if: always() && steps.neon-branch.outputs.branch_id != ''
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ steps.neon-branch.outputs.branch_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}
