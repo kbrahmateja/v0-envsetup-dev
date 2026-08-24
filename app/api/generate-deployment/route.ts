@@ -1,5 +1,31 @@
 import { generateDockerCompose, generateDockerfile, generateEnvExample, generateReadme, generateToolFiles, type EnvironmentConfig } from "@/lib/deployment-config"
 import JSZip from "jszip"
+import { sql } from "@/lib/db"
+
+// Logs one row per successful generation so the homepage's "Environments
+// Generated" stat (components/hero-section.tsx) is a real count instead of
+// the hardcoded "10k+" placeholder it used to be. Self-heals the table on
+// first use so no manual migration step is required; never blocks or fails
+// the actual download if logging has a problem.
+async function logGeneration(config: EnvironmentConfig) {
+  try {
+    await sql`INSERT INTO generations (language, framework) VALUES (${config.language}, ${config.framework ?? null})`
+  } catch {
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS generations (
+          id SERIAL PRIMARY KEY,
+          language VARCHAR(100),
+          framework VARCHAR(100),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `
+      await sql`INSERT INTO generations (language, framework) VALUES (${config.language}, ${config.framework ?? null})`
+    } catch (retryErr) {
+      console.error("Failed to log generation (after create-table retry):", retryErr)
+    }
+  }
+}
 
 export async function POST(req: Request) {
   const config: EnvironmentConfig = await req.json()
@@ -51,6 +77,8 @@ Thumbs.db
 `)
 
   const zipBlob = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
+
+  await logGeneration(config)
 
   return new Response(zipBlob, {
     headers: {

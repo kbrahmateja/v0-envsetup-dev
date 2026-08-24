@@ -1,8 +1,31 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Code, Zap, Bot } from "lucide-react"
+import { sql } from "@/lib/db"
 
-export default function HeroSection() {
+// Was a hardcoded "10k+" - nothing ever tracked real generations. Now reads
+// the real count from the `generations` table (logged in
+// app/api/generate-deployment/route.ts). Formats honestly: exact counts
+// under 1,000, "k+" only once it's genuinely in the thousands.
+async function getGenerationsCount(): Promise<number> {
+  try {
+    const result = await sql`SELECT COUNT(*)::int AS count FROM generations`
+    return (result[0] as { count: number } | undefined)?.count ?? 0
+  } catch {
+    return 0
+  }
+}
+
+function formatGenerationsCount(count: number): string {
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k+`
+  }
+  return count.toLocaleString()
+}
+
+export default async function HeroSection() {
+  const generationsCount = await getGenerationsCount()
+
   return (
     <section className="relative py-20 lg:py-32 overflow-hidden">
       <div className="container mx-auto px-4">
@@ -52,7 +75,7 @@ export default function HeroSection() {
               <div className="text-muted-foreground">Templates &amp; Stacks</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary mb-2">10k+</div>
+              <div className="text-3xl font-bold text-primary mb-2">{formatGenerationsCount(generationsCount)}</div>
               <div className="text-muted-foreground">Environments Generated</div>
             </div>
             <div>
