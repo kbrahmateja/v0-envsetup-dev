@@ -22,22 +22,38 @@ interface GenerationRow {
 }
 
 async function getGenerations(login: string): Promise<GenerationRow[] | null> {
+  const query = () => sql`
+    SELECT id, language, framework, created_at
+    FROM generations
+    WHERE user_login = ${login}
+    ORDER BY created_at DESC
+    LIMIT 100
+  `
+
   try {
-    const rows = await sql`
-      SELECT id, language, framework, created_at
-      FROM generations
-      WHERE user_login = ${login}
-      ORDER BY created_at DESC
-      LIMIT 100
-    `
-    return rows as GenerationRow[]
-  } catch (err) {
-    // Table/columns may not exist yet if no generation has ever been logged
-    // with an identity attached (self-healed on first write in the
-    // generate-deployment route) - treat that the same as "no history yet"
-    // rather than showing an error to a signed-in user.
-    console.error("Failed to load generation history:", err)
-    return null
+    return (await query()) as GenerationRow[]
+  } catch {
+    // Most likely cause on a fresh deploy: nobody has generated anything
+    // while signed in yet, so generate-deployment's route never ran its
+    // self-heal and the user_login/user_email columns (or even the table)
+    // don't exist. Self-heal here too so a signed-in user with zero history
+    // sees the friendly "no generations yet" empty state below, not an error.
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS generations (
+          id SERIAL PRIMARY KEY,
+          language VARCHAR(100),
+          framework VARCHAR(100),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `
+      await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS user_login VARCHAR(255)`
+      await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS user_email VARCHAR(255)`
+      return (await query()) as GenerationRow[]
+    } catch (retryErr) {
+      console.error("Failed to load generation history (after create-table/add-column retry):", retryErr)
+      return null
+    }
   }
 }
 
