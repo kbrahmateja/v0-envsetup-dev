@@ -23,7 +23,7 @@ export interface EnvironmentConfig {
 export function getAppPort(language: string, framework?: string): number {
   const lang = language.toLowerCase()
   const fw = framework?.toLowerCase() ?? ""
-  const isFrontend = fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs"
+  const isFrontend = ["react", "vue", "angular", "svelte", "solidjs", "preact", "lit", "qwik", "jquery", "alpinejs", "htmx"].includes(fw)
   if (isFrontend) return 80
   if (fw === "nestjs") return 3000
   if (lang === "python" || lang === "r" || lang === "julia") return 8000
@@ -48,7 +48,7 @@ export function generateDockerfile(config: EnvironmentConfig): string {
     // such entrypoint exists in a Vite/CRA/Angular-CLI project). Build the
     // static output and serve it with Nginx instead, same pattern used for
     // every other production static-site deploy.
-    if (fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs") {
+    if (fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs" || fw === "preact" || fw === "lit" || fw === "qwik") {
       const buildOutDir = fw === "angular" ? `dist/${config.projectName}` : "dist"
       return `FROM ${baseImage} AS builder
 WORKDIR /app
@@ -59,6 +59,20 @@ RUN ${pm} run build
 
 FROM nginx:alpine
 COPY --from=builder /app/${buildOutDir} /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+`
+    }
+    // jQuery, AlpineJS and htmx aren't SPA frameworks with their own build
+    // toolchain - real projects using them are just server-rendered or plain
+    // static HTML/CSS/JS with the library pulled in via a <script> tag (CDN
+    // or a vendored file), no npm build step at all. Forcing them through
+    // the build-then-nginx pattern above would `npm ci` against a
+    // package.json that likely doesn't even exist. Serve the static files
+    // directly instead.
+    if (fw === "jquery" || fw === "alpinejs" || fw === "htmx") {
+      return `FROM nginx:alpine
+COPY . /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 `
@@ -554,6 +568,7 @@ const INSTALL_COMMANDS: Record<string, string> = {
   cpanm: "cpanm --installdeps .", "install.packages": "R -e \"install.packages('plumber')\"",
   Pkg: "julia --project=. -e \"using Pkg; Pkg.instantiate()\"",
   lein: "lein deps", stack: "stack setup", "zig build": "zig build",
+  static: "# none - just open index.html or serve the folder",
 }
 const DEV_COMMANDS: Record<string, string> = {
   npm: "npm run dev", pip: "uvicorn main:app --reload",
@@ -564,6 +579,7 @@ const DEV_COMMANDS: Record<string, string> = {
   cpanm: "morbo app.pl", "install.packages": "R -e \"plumber::plumb('plumber.R')$run()\"",
   Pkg: "julia --project=. -e \"using Genie; Genie.up()\"",
   lein: "lein run", stack: "stack run", "zig build": "zig build run",
+  static: "npx serve .",
 }
 
 // ─── README Generator ────────────────────────────────────────────────────────

@@ -43,11 +43,13 @@ export const languages = [
 
 export const frameworks: Record<string, string[]> = {
   javascript: [
-    "React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "Nuxt.js",
+    "React", "Vue", "Angular", "Svelte", "SolidJS", "Preact", "Lit", "Qwik", "jQuery", "AlpineJS", "htmx",
+    "Express", "Next.js", "Nuxt.js",
     "Fastify", "Koa", "Hapi", "Hono", "Feathers", "AdonisJS", "LoopBack", "Meteor", "Strapi", "SailsJS",
   ],
   typescript: [
-    "React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "NestJS",
+    "React", "Vue", "Angular", "Svelte", "SolidJS", "Preact", "Lit", "Qwik",
+    "Express", "Next.js", "NestJS",
     "Nuxtjs", "Remix", "SvelteKit", "Astro", "Fastify", "Hono", "Elysia", "Medusa",
     "Encore", "Nest GraphQL", "Nextjs Drizzle", "tRPC Nextjs",
   ],

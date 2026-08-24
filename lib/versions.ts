@@ -41,6 +41,15 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
     meteor:     { languageVersion: "20.x", frameworkVersion: "3.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "14.x" },
     strapi:     { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
     sailsjs:    { languageVersion: "20.x", frameworkVersion: "1.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "14.x" },
+    preact:     { languageVersion: "20.x", frameworkVersion: "10.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    lit:        { languageVersion: "20.x", frameworkVersion: "3.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    qwik:       { languageVersion: "20.x", frameworkVersion: "1.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    jquery:     { languageVersion: "n/a",   frameworkVersion: "3.x",   dockerImage: "nginx:alpine", packageManager: "static", minLanguageVersion: "n/a",
+                  notes: "No build step - jQuery is included via <script> tag on plain static HTML/CSS/JS, served as-is." },
+    alpinejs:   { languageVersion: "n/a",   frameworkVersion: "3.x",   dockerImage: "nginx:alpine", packageManager: "static", minLanguageVersion: "n/a",
+                  notes: "No build step - Alpine.js is included via <script> tag on plain static or server-rendered HTML, served as-is." },
+    htmx:       { languageVersion: "n/a",   frameworkVersion: "2.x",   dockerImage: "nginx:alpine", packageManager: "static", minLanguageVersion: "n/a",
+                  notes: "No build step - htmx is included via <script> tag on plain static or server-rendered HTML, served as-is." },
   },
 
   // TypeScript
@@ -66,6 +75,9 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
     nest_graphql: { languageVersion: "20.x", frameworkVersion: "10.x", dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
     nextjs_drizzle: { languageVersion: "20.x", frameworkVersion: "15.x", dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.17.x" },
     trpc_nextjs: { languageVersion: "20.x", frameworkVersion: "15.x",  dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.17.x" },
+    preact:     { languageVersion: "20.x", frameworkVersion: "10.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    lit:        { languageVersion: "20.x", frameworkVersion: "3.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    qwik:       { languageVersion: "20.x", frameworkVersion: "1.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
   },
 
   // Python
