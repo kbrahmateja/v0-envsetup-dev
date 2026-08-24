@@ -1,8 +1,25 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+
+// Every new-subscriber signup sends two emails through Brevo (admin alert +
+// welcome email to whatever address was submitted). With no cap, this
+// endpoint could be hammered to burn through the Brevo quota or relay spam
+// to arbitrary inboxes. 5 signups per IP per hour is generous for a real
+// visitor and blocks scripted abuse.
+const RATE_LIMIT = { limit: 5, windowMs: 60 * 60 * 1000 }
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request)
+    const { allowed } = await checkRateLimit("subscribe", ip, RATE_LIMIT)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many signup attempts. Please try again in a bit." },
+        { status: 429 },
+      )
+    }
+
     const { email } = await request.json()
 
     if (!email || !email.includes("@")) {

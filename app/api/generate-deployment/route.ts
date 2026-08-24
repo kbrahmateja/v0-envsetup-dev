@@ -1,6 +1,12 @@
 import { generateDockerCompose, generateDockerfile, generateEnvExample, generateReadme, generateToolFiles, type EnvironmentConfig } from "@/lib/deployment-config"
 import JSZip from "jszip"
 import { sql } from "@/lib/db"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+
+// Generous but real cap - a legitimate visitor might generate several
+// environments while experimenting, but nothing should be able to script
+// unlimited ZIP builds against this endpoint.
+const RATE_LIMIT = { limit: 30, windowMs: 60 * 60 * 1000 }
 
 // Logs one row per successful generation so the homepage's "Environments
 // Generated" stat (components/hero-section.tsx) is a real count instead of
@@ -28,6 +34,15 @@ async function logGeneration(config: EnvironmentConfig) {
 }
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req)
+  const { allowed } = await checkRateLimit("generate-deployment", ip, RATE_LIMIT)
+  if (!allowed) {
+    return new Response(JSON.stringify({ error: "Too many requests. Please try again in a bit." }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
   const config: EnvironmentConfig = await req.json()
 
   const zip = new JSZip()
