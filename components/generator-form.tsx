@@ -23,9 +23,18 @@ import { languages, frameworks, sanitizeLanguage, sanitizeFramework } from "@/li
 export { sanitizeLanguage, sanitizeFramework }
 
 // Tools available for every language.
+//
+// "Docker" and "Git" used to be listed here as checkboxes, but neither one
+// was ever actually read anywhere in the generator - app/api/generate-
+// deployment/route.ts unconditionally adds Dockerfile/docker-compose.yml/
+// .env.example and .gitignore to every download regardless of what's
+// checked here. That made both checkboxes pure decoration: unchecking
+// "Docker" (as a user found) still produced a Dockerfile, which reads as
+// a bug even though nothing was crashing. Since Docker/Git output is core
+// to every generation, not an optional add-on the way ESLint or Jest are,
+// removing the checkboxes is the honest fix rather than wiring them up to
+// gate output that's supposed to always be there.
 const universalTools = [
-  { id: "docker", label: "Docker" },
-  { id: "git", label: "Git" },
   { id: "github-actions", label: "GitHub Actions" },
 ]
 
