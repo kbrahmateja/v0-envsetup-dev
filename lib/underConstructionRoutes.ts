@@ -5,6 +5,4 @@ export const underConstructionRoutes = [
     "/docs",
     "/roadmap",
     "/about",
-    "/privacy",
-    "/terms",
 ]
