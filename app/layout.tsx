@@ -4,7 +4,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
-import Script from "next/script"
 import { Analytics } from "@vercel/analytics/react"
 import { PageTracker } from "@/components/analytics/page-tracker"
 import { VisitorTracker } from "@/components/visitor-tracker"
@@ -13,6 +12,8 @@ import Header from "@/components/header"
 import { VersionsBanner } from "@/components/versions-banner"
 import Footer from "@/components/footer"
 import FeedbackWidget from "@/components/feedback-widget"
+import { AnalyticsScripts } from "@/components/analytics-scripts"
+import { CookieConsent } from "@/components/cookie-consent"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -56,15 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-XZEY5749RC" strategy="afterInteractive" />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-XZEY5749RC');
-          `}
-        </Script>
+        <AnalyticsScripts />
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
@@ -81,6 +74,7 @@ export default function RootLayout({
             <Footer />
           </div>
           <FeedbackWidget />
+          <CookieConsent />
         </ThemeProvider>
         <Analytics />
       </body>
