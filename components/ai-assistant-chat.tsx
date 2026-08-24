@@ -30,10 +30,12 @@ export function AIAssistantChat() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isRateLimited, setIsRateLimited] = useState(false)
-  // TODO: never set — the "download detected stack" card/dialog below (envConfig &&)
-  // is currently permanently dead code. Needs the AI response to be parsed into a
-  // structured EnvironmentConfig before this can ever populate.
-  const [envConfig] = useState<EnvironmentConfig | null>(null)
+  // Populated from the server's lightweight keyword detection (data.detectedStack,
+  // see app/api/ai-assistant/route.ts / lib/stacks.ts) once the conversation
+  // mentions a recognizable language/framework. Sticky - a later message that
+  // doesn't match anything leaves the last detected stack in place rather than
+  // hiding the download card.
+  const [envConfig, setEnvConfig] = useState<EnvironmentConfig | null>(null)
   const [showDeployment, setShowDeployment] = useState(false)
   // One id per conversation (resets on page reload) — lets the server count this
   // as a single "session" against the daily/weekly free-tier limit.
@@ -86,6 +88,18 @@ export function AIAssistantChat() {
 
       const data = await res.json()
       if (data.rateLimited) setIsRateLimited(true)
+      if (data.detectedStack?.language) {
+        const { language, framework } = data.detectedStack as { language: string; framework?: string }
+        setEnvConfig({
+          projectName: `${framework || language}-project`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          language,
+          framework,
+          databases: [],
+          tools: [],
+          serverType: "local",
+          description: text,
+        })
+      }
       const reply: Message = {
         id: String(Date.now() + 1),
         role: "assistant",

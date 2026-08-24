@@ -14,32 +14,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { trackEnvironmentGeneration } from "@/lib/gtag"
 import { Bot } from "lucide-react"
 import Link from "next/link"
+import { languages, frameworks, sanitizeLanguage, sanitizeFramework } from "@/lib/stacks"
 
-const languages = [
-  { value: "javascript", label: "JavaScript" },
-  { value: "typescript", label: "TypeScript" },
-  { value: "python", label: "Python" },
-  { value: "java", label: "Java" },
-  { value: "csharp", label: "C#" },
-  { value: "go", label: "Go" },
-  { value: "rust", label: "Rust" },
-  { value: "php", label: "PHP" },
-  { value: "ruby", label: "Ruby" },
-  { value: "swift", label: "Swift" },
-]
-
-const frameworks = {
-  javascript: ["React", "Vue", "Angular", "Express", "Next.js", "Nuxt.js"],
-  typescript: ["React", "Vue", "Angular", "Express", "Next.js", "NestJS"],
-  python: ["Django", "Flask", "FastAPI", "Streamlit", "Jupyter"],
-  java: ["Spring Boot", "Spring MVC", "Quarkus", "Micronaut"],
-  csharp: [".NET Core", "ASP.NET", "Blazor", "MAUI"],
-  go: ["Gin", "Echo", "Fiber", "Chi"],
-  rust: ["Actix", "Rocket", "Warp", "Axum"],
-  php: ["Laravel", "Symfony", "CodeIgniter", "Slim"],
-  ruby: ["Rails", "Sinatra", "Hanami"],
-  swift: ["Vapor", "Perfect", "Kitura"],
-}
+// Re-exported for backward compatibility - components/generator-form.test.ts
+// imports sanitizeLanguage/sanitizeFramework from this module. The actual
+// catalog + validation now live in lib/stacks.ts so the AI assistant
+// (app/api/ai-assistant/route.ts) can reuse the same source of truth.
+export { sanitizeLanguage, sanitizeFramework }
 
 // Tools available for every language.
 const universalTools = [
@@ -91,26 +72,6 @@ const toolsByLanguage: Record<string, { id: string; label: string }[]> = {
 
 function getAvailableTools(language: string) {
   return [...universalTools, ...(toolsByLanguage[language] ?? [])]
-}
-
-const languageValues = new Set(languages.map((l) => l.value))
-
-// URL params (from the templates page, the AI assistant, or a hand-typed
-// link) are untrusted input -- e.g. ?language=java&framework=Angular would
-// previously be assigned straight into form state with no cross-check,
-// producing a selected language whose framework dropdown doesn't actually
-// offer "Angular" and a downstream generation with a nonsensical combo.
-// Only accept values that are actually valid for the generator.
-export function sanitizeLanguage(value: string | null | undefined): string {
-  const normalized = (value || "").trim().toLowerCase()
-  return languageValues.has(normalized) ? normalized : ""
-}
-
-export function sanitizeFramework(language: string, value: string | null | undefined): string {
-  const validFrameworks = frameworks[language as keyof typeof frameworks]
-  if (!validFrameworks) return ""
-  const normalized = (value || "").trim().toLowerCase()
-  return validFrameworks.some((f) => f.toLowerCase() === normalized) ? normalized : ""
 }
 
 export default function GeneratorForm() {

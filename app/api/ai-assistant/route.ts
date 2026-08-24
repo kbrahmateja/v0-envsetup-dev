@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
 import { searchKnowledge, buildContext, extractQuery, type KnowledgeChunk } from "@/lib/rag"
 import { sql } from "@/lib/db"
+import { detectStackFromText } from "@/lib/stacks"
 
 function getModel() {
   if (process.env.GROQ_API_KEY) {
@@ -175,6 +176,14 @@ export async function POST(req: NextRequest) {
     const chunks = await searchKnowledge(query)
     const context = buildContext(chunks)
 
+    // Lightweight keyword detection so the "download detected stack" card in
+    // the chat UI (components/ai-assistant-chat.tsx) has something real to
+    // populate from, instead of being permanently dead code. Deliberately
+    // not asking the LLM to emit structured JSON here - keyword matching on
+    // what the user actually typed is simpler and never hands the client a
+    // language/framework combo the generator doesn't support.
+    const detectedStack = detectStackFromText(query)
+
     const model = getModel()
     let responsePayload: { message: string } | null = null
 
@@ -216,7 +225,7 @@ Guidelines:
       responsePayload = { message: smartFallback(messages, context, chunks) }
     }
 
-    return withCookie(NextResponse.json(responsePayload))
+    return withCookie(NextResponse.json({ ...responsePayload, detectedStack }))
   } catch (err) {
     console.error("Route error:", err)
     return NextResponse.json({ message: smartFallback([], "") })
