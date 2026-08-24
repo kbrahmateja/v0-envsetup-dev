@@ -23,6 +23,16 @@ const languageColors: Record<string, string> = {
   csharp: "bg-violet-100 text-violet-800",
   kotlin: "bg-indigo-100 text-indigo-800",
   elixir: "bg-fuchsia-100 text-fuchsia-800",
+  swift: "bg-orange-100 text-orange-800",
+  scala: "bg-red-100 text-red-800",
+  dart: "bg-sky-100 text-sky-800",
+  crystal: "bg-teal-100 text-teal-800",
+  perl: "bg-blue-100 text-blue-800",
+  r: "bg-blue-100 text-blue-800",
+  julia: "bg-purple-100 text-purple-800",
+  clojure: "bg-emerald-100 text-emerald-800",
+  haskell: "bg-violet-100 text-violet-800",
+  zig: "bg-amber-100 text-amber-800",
 }
 
 export default function TemplatesPage() {

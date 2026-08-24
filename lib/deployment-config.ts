@@ -10,6 +10,29 @@ export interface EnvironmentConfig {
   description?: string
 }
 
+// ─── App port per language ───────────────────────────────────────────────────
+// Single source of truth for "what port does the generated app actually
+// listen on inside the container". generateDockerCompose, generateEnvExample,
+// and generateToolFiles each computed this independently with their own
+// hand-rolled language lists, and disagreed with what generateDockerfile's
+// EXPOSE/CMD actually bind to: Python (uvicorn/gunicorn bind 8000, but
+// compose/env assumed 3000), PHP (php-fpm listens on 9000, compose/env
+// assumed 3000), and Elixir (Phoenix's release binds 4000, but compose/env
+// put it in the 8080 bucket). The generated docker-compose.yml and .env
+// files pointed at a port the container was never listening on.
+export function getAppPort(language: string, framework?: string): number {
+  const lang = language.toLowerCase()
+  const fw = framework?.toLowerCase() ?? ""
+  const isFrontend = fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs"
+  if (isFrontend) return 80
+  if (fw === "nestjs") return 3000
+  if (lang === "python" || lang === "r" || lang === "julia") return 8000
+  if (lang === "php") return 9000
+  if (lang === "elixir") return 4000
+  if (["java", "kotlin", "csharp", "go", "rust", "scala", "dart", "clojure", "haskell", "swift"].includes(lang)) return 8080
+  return 3000 // javascript/typescript backends, ruby, crystal, perl, zig, and any unlisted language
+}
+
 // ─── Dockerfile Generator ────────────────────────────────────────────────────
 export function generateDockerfile(config: EnvironmentConfig): string {
   const lang = config.language.toLowerCase()
@@ -74,7 +97,12 @@ EXPOSE 3000
 CMD ["bun", "run", "start"]
 `
     }
-    const buildStep = fw.includes("next") || fw.includes("remix") || fw.includes("svelte") || fw.includes("nuxt") || fw.includes("astro")
+    // Strapi and AdonisJS both define matching "build"/"start" npm scripts in
+    // their official starter templates (strapi build/start; AdonisJS's
+    // `node ace build` + `node bin/server.js`), so they fit this same
+    // build-then-start pattern instead of the plain "node src/index.js"
+    // fallback, which has no build output to run.
+    const buildStep = fw.includes("next") || fw.includes("remix") || fw.includes("svelte") || fw.includes("nuxt") || fw.includes("astro") || fw.includes("strapi") || fw.includes("adonis")
       ? `RUN ${pm} run build\nEXPOSE 3000\nCMD ["${pm}", "run", "start"]`
       : `EXPOSE 3000\nCMD ["node", "src/index.js"]`
     return `FROM ${baseImage}
@@ -91,7 +119,7 @@ ${buildStep}
     // fallback below, which does not start either of them - Streamlit apps
     // are launched via the `streamlit` CLI (calling the script directly skips
     // its server bootstrap), and Jupyter has no "main.py" entrypoint at all.
-    const cmd = fw.includes("fastapi") || fw.includes("starlette") || fw.includes("litestar")
+    const cmd = fw.includes("fastapi") || fw.includes("starlette") || fw.includes("litestar") || fw.includes("blacksheep")
       ? 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]'
       : fw.includes("django")
       ? 'CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]'
@@ -258,6 +286,150 @@ CMD ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
 `
   }
 
+  if (lang === "scala") {
+    // Assumes the sbt-assembly plugin is configured (the standard way to
+    // produce a single runnable fat jar for a Scala service) - the same
+    // assumption every JVM branch above makes about its build tool producing
+    // one deployable artifact.
+    return `FROM eclipse-temurin:${info?.languageVersion ?? "21"}-jdk-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache bash curl
+RUN curl -fLo cs https://github.com/coursier/coursier/releases/latest/download/cs-x86_64-pc-linux && chmod +x cs && ./cs install sbt --dir /usr/local/bin
+COPY . .
+RUN sbt assembly
+
+FROM eclipse-temurin:${info?.languageVersion ?? "21"}-jre-alpine
+WORKDIR /app
+COPY --from=builder /app/target/scala-*/*-assembly-*.jar app.jar
+EXPOSE ${getAppPort(lang)}
+CMD ["java", "-jar", "app.jar"]
+`
+  }
+
+  if (lang === "dart") {
+    return `FROM dart:stable AS builder
+WORKDIR /app
+COPY pubspec.* ./
+RUN dart pub get
+COPY . .
+RUN dart compile exe bin/server.dart -o bin/server
+
+FROM dart:stable
+WORKDIR /app
+COPY --from=builder /app/bin/server ./server
+EXPOSE ${getAppPort(lang)}
+CMD ["./server"]
+`
+  }
+
+  if (lang === "crystal") {
+    return `FROM crystal:latest AS builder
+WORKDIR /app
+COPY shard.yml shard.lock* ./
+RUN shards install
+COPY . .
+RUN crystal build --release -o app src/app.cr
+
+FROM alpine:3.19
+RUN apk add --no-cache libssl3 libevent pcre2
+WORKDIR /app
+COPY --from=builder /app/app .
+EXPOSE ${getAppPort(lang)}
+CMD ["./app"]
+`
+  }
+
+  if (lang === "perl") {
+    // Mojolicious apps run via its own morbo/hypnotoad servers; everything
+    // else PSGI-based (Dancer2 included) runs via plackup against app.psgi.
+    const cmd = fw.includes("mojolicious")
+      ? `CMD ["morbo", "-l", "http://0.0.0.0:${getAppPort(lang)}", "app.pl"]`
+      : `CMD ["plackup", "-p", "${getAppPort(lang)}", "-Ilib", "-s", "Starman", "app.psgi"]`
+    return `FROM ${baseImage}
+WORKDIR /app
+COPY cpanfile ./
+RUN cpanm --notest --installdeps .
+COPY . .
+EXPOSE ${getAppPort(lang)}
+${cmd}
+`
+  }
+
+  if (lang === "r") {
+    return `FROM ${baseImage}
+WORKDIR /app
+COPY . .
+RUN R -e "install.packages('plumber', repos='https://cloud.r-project.org')"
+EXPOSE ${getAppPort(lang)}
+CMD ["R", "-e", "pr <- plumber::plumb('plumber.R'); pr$run(host='0.0.0.0', port=${getAppPort(lang)})"]
+`
+  }
+
+  if (lang === "julia") {
+    return `FROM ${baseImage}
+WORKDIR /app
+COPY Project.toml Manifest.toml* ./
+RUN julia --project=. -e "using Pkg; Pkg.instantiate()"
+COPY . .
+EXPOSE ${getAppPort(lang)}
+CMD ["julia", "--project=.", "-e", "using Genie; Genie.loadapp(); up(${getAppPort(lang)}, \\"0.0.0.0\\", async=false)"]
+`
+  }
+
+  if (lang === "clojure") {
+    return `FROM clojure:temurin-${info?.languageVersion ?? "21"}-lein AS builder
+WORKDIR /app
+COPY project.clj ./
+RUN lein deps
+COPY . .
+RUN lein uberjar
+
+FROM eclipse-temurin:${info?.languageVersion ?? "21"}-jre-alpine
+WORKDIR /app
+COPY --from=builder /app/target/*-standalone.jar app.jar
+EXPOSE ${getAppPort(lang)}
+CMD ["java", "-jar", "app.jar"]
+`
+  }
+
+  if (lang === "haskell") {
+    // The compiled binary's name comes from the .cabal/package.yaml
+    // executable stanza, which this generator has no way to know in
+    // advance - same problem as Swift above, solved the same way: locate
+    // whatever `stack build --copy-bins` produced instead of guessing.
+    return `FROM haskell:${info?.languageVersion ?? "9.4"}-slim AS builder
+WORKDIR /app
+COPY *.cabal stack.yaml* ./
+RUN stack setup
+COPY . .
+RUN stack build --copy-bins --local-bin-path /app/bin
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y ca-certificates libgmp10 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=builder /app/bin ./bin
+EXPOSE ${getAppPort(lang)}
+CMD ["sh", "-c", "exec \\"$(find ./bin -maxdepth 1 -type f | head -n1)\\""]
+`
+  }
+
+  if (lang === "zig") {
+    return `FROM alpine:3.19 AS builder
+RUN apk add --no-cache curl xz
+RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJ -C /usr/local && ln -s /usr/local/zig-linux-x86_64-0.13.0/zig /usr/local/bin/zig
+WORKDIR /app
+COPY . .
+RUN zig build -Doptimize=ReleaseFast
+
+FROM alpine:3.19
+RUN apk add --no-cache libgcc
+WORKDIR /app
+COPY --from=builder /app/zig-out/bin ./bin
+EXPOSE ${getAppPort(lang)}
+CMD ["sh", "-c", "exec \\"$(find ./bin -maxdepth 1 -type f | head -n1)\\""]
+`
+  }
+
   // Generic fallback
   return `FROM ${baseImage}
 WORKDIR /app
@@ -269,11 +441,7 @@ CMD ["/bin/sh", "-c", "echo 'Configure CMD for your app'"]
 
 // ─── docker-compose.yml Generator ───────────────────────────────────────────
 export function generateDockerCompose(config: EnvironmentConfig): string {
-  const fw = config.framework?.toLowerCase() ?? ""
-  const isFrontend = fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs"
-  const port = isFrontend
-    ? 80
-    : ["java", "kotlin", "csharp", "go", "rust", "elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000
+  const port = getAppPort(config.language, config.framework)
   const dbServices: string[] = []
   const depends: string[] = []
   const envVars: string[] = []
@@ -340,15 +508,13 @@ ${dbServices.join("\n\n")}${volumes}
 
 // ─── .env.example Generator ─────────────────────────────────────────────────
 export function generateEnvExample(config: EnvironmentConfig): string {
-  const fw = config.framework?.toLowerCase() ?? ""
-  const isFrontend = fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs"
   const lines: string[] = [
     `# ${config.projectName} — Environment Variables`,
     `# Copy to .env and fill in your values`,
     "",
     "# App",
     "NODE_ENV=development",
-    `PORT=${isFrontend ? 80 : ["java","kotlin","csharp","go","rust","elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000}`,
+    `PORT=${getAppPort(config.language, config.framework)}`,
     "",
   ]
 
@@ -371,6 +537,33 @@ export function generateEnvExample(config: EnvironmentConfig): string {
 
   lines.push("# Secrets", "SECRET_KEY=change_me_in_production", "JWT_SECRET=change_me_in_production")
   return lines.join("\n")
+}
+
+// Per-package-manager install/dev commands for the README. This used to be
+// two long ternary chains that only recognized 8 package managers and fell
+// back to nonsense like "spm install" or "install.packages install" for
+// everything else (Swift's spm was already falling through to this before
+// today's Swift Dockerfile fix - it just never showed up because nothing
+// generated a Swift README to notice).
+const INSTALL_COMMANDS: Record<string, string> = {
+  npm: "npm install", pip: "pip install -r requirements.txt",
+  maven: "mvn install", gradle: "./gradlew build", cargo: "cargo build",
+  composer: "composer install", bundler: "bundle install", mix: "mix deps.get",
+  dotnet: "dotnet restore", spm: "swift package resolve",
+  sbt: "sbt update", pub: "dart pub get", shards: "shards install",
+  cpanm: "cpanm --installdeps .", "install.packages": "R -e \"install.packages('plumber')\"",
+  Pkg: "julia --project=. -e \"using Pkg; Pkg.instantiate()\"",
+  lein: "lein deps", stack: "stack setup", "zig build": "zig build",
+}
+const DEV_COMMANDS: Record<string, string> = {
+  npm: "npm run dev", pip: "uvicorn main:app --reload",
+  maven: "mvn spring-boot:run", gradle: "./gradlew bootRun", cargo: "cargo run",
+  composer: "php artisan serve", bundler: "bundle exec rails server", mix: "mix phx.server",
+  dotnet: "dotnet run", spm: "swift run",
+  sbt: "sbt run", pub: "dart run bin/server.dart", shards: "crystal run src/app.cr",
+  cpanm: "morbo app.pl", "install.packages": "R -e \"plumber::plumb('plumber.R')$run()\"",
+  Pkg: "julia --project=. -e \"using Genie; Genie.up()\"",
+  lein: "lein run", stack: "stack run", "zig build": "zig build run",
 }
 
 // ─── README Generator ────────────────────────────────────────────────────────
@@ -407,10 +600,10 @@ cp .env.example .env
 docker compose up -d
 
 # 3. Install dependencies
-${pm === "npm" ? "npm install" : pm === "pip" ? "pip install -r requirements.txt" : pm === "maven" ? "mvn install" : pm === "gradle" ? "./gradlew build" : pm === "cargo" ? "cargo build" : pm === "composer" ? "composer install" : pm === "bundler" ? "bundle install" : pm === "mix" ? "mix deps.get" : pm + " install"}
+${INSTALL_COMMANDS[pm] ?? `${pm} install`}
 
 # 4. Run development server
-${pm === "npm" ? "npm run dev" : pm === "pip" ? "uvicorn main:app --reload" : pm === "maven" ? "mvn spring-boot:run" : pm === "gradle" ? "./gradlew bootRun" : pm === "cargo" ? "cargo run" : pm === "composer" ? "php artisan serve" : pm === "bundler" ? "bundle exec rails server" : pm === "mix" ? "mix phx.server" : pm + " run dev"}
+${DEV_COMMANDS[pm] ?? `${pm} run dev`}
 \`\`\`
 
 ## Generated by EnvSetup.dev CLI
@@ -573,7 +766,7 @@ end
   }
 
   // ── Infrastructure & Messaging ──────────────────────────────────────────────
-  const appPort = ["python"].includes(lang) ? 8000 : ["go","rust","java","kotlin","csharp","elixir"].includes(lang) ? 8080 : 3000
+  const appPort = getAppPort(config.language, config.framework)
   const projName = config.projectName || "myapp"
 
   if (selected.has("kubernetes")) {
@@ -1021,6 +1214,73 @@ function generateGithubActionsWorkflow(config: EnvironmentConfig): string {
           php-version: '8.3'
       - run: composer install
       - run: vendor/bin/phpunit || true`
+      : lang === "kotlin"
+      ? `      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - run: ./gradlew test || mvn -B test`
+      : lang === "elixir"
+      ? `      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16'
+          otp-version: '26'
+      - run: mix deps.get
+      - run: mix test || true`
+      : lang === "swift"
+      ? `      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.10'
+      - run: swift build
+      - run: swift test || true`
+      : lang === "scala"
+      ? `      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: sbt/setup-sbt@v1
+      - run: sbt test || true`
+      : lang === "dart"
+      ? `      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart test || true`
+      : lang === "crystal"
+      ? `      - uses: crystal-lang/install-crystal@v1
+      - run: shards install
+      - run: crystal spec || true`
+      : lang === "perl"
+      ? `      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.38'
+      - run: cpanm --notest --installdeps .
+      - run: prove -l || true`
+      : lang === "r"
+      ? `      - uses: r-lib/actions/setup-r@v2
+      - run: Rscript -e 'install.packages("plumber")'`
+      : lang === "julia"
+      ? `      - uses: julia-actions/setup-julia@v2
+      - run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - run: julia --project=. -e 'using Pkg; Pkg.test()' || true`
+      : lang === "clojure"
+      ? `      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: DeLaGuardo/setup-clojure@13.2
+        with:
+          lein: latest
+      - run: lein test || true`
+      : lang === "haskell"
+      ? `      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.4'
+      - run: stack build
+      - run: stack test || true`
+      : lang === "zig"
+      ? `      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: '0.13.0'
+      - run: zig build test || true`
       : `      - run: echo "Add your build/test steps here"`
 
   return `name: CI

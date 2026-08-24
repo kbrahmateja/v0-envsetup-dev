@@ -4,30 +4,78 @@
 // (app/api/ai-assistant/route.ts) to turn untrusted input - a URL param, or
 // free-text chat - into a language/framework pair the generator actually
 // supports.
+// The Wizard used to offer far fewer languages/frameworks than the /templates
+// catalog (10 languages here vs. 21 in lib/templates.ts) - so the catalog,
+// which is meant to be a showcase of common default combinations, was
+// actually the more capable surface. The Wizard is the one with version
+// selection and per-combo Dockerfile generation, so it should be the more
+// complete tool; the catalog is a curated subset of it. This list now covers
+// every language/framework the catalog offers (plus Svelte/SolidJS, added
+// separately). Two catalog frameworks were deliberately left out: Perfect and
+// Kitura (Swift) - both are unmaintained/discontinued (Kitura was
+// discontinued by IBM in 2020) and don't belong as live options; Hummingbird
+// (actively maintained) is offered instead. MAUI was also dropped from C# -
+// it's a native mobile/desktop UI framework, not a web service, so it can't
+// be meaningfully Dockerized at all.
 export const languages = [
   { value: "javascript", label: "JavaScript" },
   { value: "typescript", label: "TypeScript" },
   { value: "python", label: "Python" },
   { value: "java", label: "Java" },
+  { value: "kotlin", label: "Kotlin" },
   { value: "csharp", label: "C#" },
   { value: "go", label: "Go" },
   { value: "rust", label: "Rust" },
   { value: "php", label: "PHP" },
   { value: "ruby", label: "Ruby" },
   { value: "swift", label: "Swift" },
+  { value: "elixir", label: "Elixir" },
+  { value: "scala", label: "Scala" },
+  { value: "dart", label: "Dart" },
+  { value: "crystal", label: "Crystal" },
+  { value: "perl", label: "Perl" },
+  { value: "r", label: "R" },
+  { value: "julia", label: "Julia" },
+  { value: "clojure", label: "Clojure" },
+  { value: "haskell", label: "Haskell" },
+  { value: "zig", label: "Zig" },
 ]
 
 export const frameworks: Record<string, string[]> = {
-  javascript: ["React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "Nuxt.js"],
-  typescript: ["React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "NestJS"],
-  python: ["Django", "Flask", "FastAPI", "Streamlit", "Jupyter"],
-  java: ["Spring Boot", "Spring MVC", "Quarkus", "Micronaut"],
-  csharp: [".NET Core", "ASP.NET", "Blazor", "MAUI"],
-  go: ["Gin", "Echo", "Fiber", "Chi"],
-  rust: ["Actix", "Rocket", "Warp", "Axum"],
-  php: ["Laravel", "Symfony", "CodeIgniter", "Slim"],
-  ruby: ["Rails", "Sinatra", "Hanami"],
-  swift: ["Vapor", "Perfect", "Kitura"],
+  javascript: [
+    "React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "Nuxt.js",
+    "Fastify", "Koa", "Hapi", "Hono", "Feathers", "AdonisJS", "LoopBack", "Meteor", "Strapi", "SailsJS",
+  ],
+  typescript: [
+    "React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "NestJS",
+    "Nuxtjs", "Remix", "SvelteKit", "Astro", "Fastify", "Hono", "Elysia", "Medusa",
+    "Encore", "Nest GraphQL", "Nextjs Drizzle", "tRPC Nextjs",
+  ],
+  python: [
+    "Django", "Flask", "FastAPI", "Streamlit", "Jupyter",
+    "Starlette", "Litestar", "Tornado", "Pyramid", "Bottle", "Sanic", "Falcon", "BlackSheep",
+  ],
+  java: [
+    "Spring Boot", "Spring MVC", "Quarkus", "Micronaut",
+    "Vertx", "Helidon", "Dropwizard", "Javalin", "SparkJava",
+  ],
+  kotlin: ["Spring Boot", "Ktor", "Micronaut"],
+  csharp: [".NET Core", "ASP.NET", "Blazor", "Minimal API", "Orleans"],
+  go: ["Gin", "Echo", "Fiber", "Chi", "Beego", "Buffalo", "Gorilla", "Iris", "Mux"],
+  rust: ["Actix", "Rocket", "Warp", "Axum", "Tide"],
+  php: ["Laravel", "Symfony", "CodeIgniter", "Slim", "Yii", "CakePHP", "Phalcon"],
+  ruby: ["Rails", "Sinatra", "Hanami", "Grape", "Roda"],
+  swift: ["Vapor", "Hummingbird"],
+  elixir: ["Phoenix", "Plug"],
+  scala: ["Play Framework", "Akka HTTP", "ZIO HTTP"],
+  dart: ["Shelf", "Angel3", "Serverpod"],
+  crystal: ["Kemal", "Lucky"],
+  perl: ["Mojolicious", "Dancer2"],
+  r: ["Plumber"],
+  julia: ["GenieJL"],
+  clojure: ["Ring", "Pedestal"],
+  haskell: ["Servant", "Yesod"],
+  zig: ["Zap"],
 }
 
 const languageValues = new Set(languages.map((l) => l.value))
@@ -80,6 +128,14 @@ const DETECTION_RULES: { pattern: RegExp; language: string; framework?: string }
   { pattern: /\bphp\b/i, language: "php" },
   { pattern: /\brails\b|ruby\s*on\s*rails/i, language: "ruby", framework: "Rails" },
   { pattern: /\bruby\b/i, language: "ruby" },
+  { pattern: /\bktor\b/i, language: "kotlin", framework: "Ktor" },
+  { pattern: /\bkotlin\b/i, language: "kotlin" },
+  { pattern: /\bphoenix\b/i, language: "elixir", framework: "Phoenix" },
+  { pattern: /\belixir\b/i, language: "elixir" },
+  { pattern: /\bvapor\b/i, language: "swift", framework: "Vapor" },
+  { pattern: /\bswift\b/i, language: "swift" },
+  { pattern: /\bscala\b/i, language: "scala" },
+  { pattern: /\.net|dotnet|asp\.?net/i, language: "csharp" },
 ]
 
 export function detectStackFromText(text: string): { language: string; framework?: string } | null {

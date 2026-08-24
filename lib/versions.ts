@@ -36,10 +36,11 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
     hapi:       { languageVersion: "20.x", frameworkVersion: "21.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
     hono:       { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
     feathers:   { languageVersion: "20.x", frameworkVersion: "5.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
-    adonis:     { languageVersion: "20.x", frameworkVersion: "6.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    adonisjs:   { languageVersion: "20.x", frameworkVersion: "6.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
     loopback:   { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
     meteor:     { languageVersion: "20.x", frameworkVersion: "3.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "14.x" },
     strapi:     { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    sailsjs:    { languageVersion: "20.x", frameworkVersion: "1.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "14.x" },
   },
 
   // TypeScript
@@ -60,6 +61,11 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
     solidjs:    { languageVersion: "20.x", frameworkVersion: "1.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
     fastify:    { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
     medusa:     { languageVersion: "20.x", frameworkVersion: "2.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "20.x" },
+    hono:       { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
+    encore:     { languageVersion: "20.x", frameworkVersion: "1.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    nest_graphql: { languageVersion: "20.x", frameworkVersion: "10.x", dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
+    nextjs_drizzle: { languageVersion: "20.x", frameworkVersion: "15.x", dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.17.x" },
+    trpc_nextjs: { languageVersion: "20.x", frameworkVersion: "15.x",  dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.17.x" },
   },
 
   // Python
@@ -76,6 +82,7 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
     sanic:      { languageVersion: "3.12", frameworkVersion: "23.x",    dockerImage: "python:3.12-slim", packageManager: "pip", minLanguageVersion: "3.8" },
     falcon:     { languageVersion: "3.12", frameworkVersion: "3.x",     dockerImage: "python:3.12-slim", packageManager: "pip", minLanguageVersion: "3.8" },
     starlette:  { languageVersion: "3.12", frameworkVersion: "0.36.x",  dockerImage: "python:3.12-slim", packageManager: "pip", minLanguageVersion: "3.8" },
+    blacksheep: { languageVersion: "3.12", frameworkVersion: "2.x",     dockerImage: "python:3.12-slim", packageManager: "pip", minLanguageVersion: "3.8" },
   },
 
   // Java
@@ -165,6 +172,59 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
     vapor:       { languageVersion: "5.10", frameworkVersion: "4.x", dockerImage: "swift:5.10-slim", packageManager: "spm", minLanguageVersion: "5.5" },
     hummingbird: { languageVersion: "5.10", frameworkVersion: "2.x", dockerImage: "swift:5.10-slim", packageManager: "spm", minLanguageVersion: "5.9" },
   },
+
+  // Scala
+  scala: {
+    play_framework: { languageVersion: "21", frameworkVersion: "3.x", dockerImage: "eclipse-temurin:21-jdk-alpine", packageManager: "sbt", minLanguageVersion: "11" },
+    akka_http:      { languageVersion: "21", frameworkVersion: "10.x", dockerImage: "eclipse-temurin:21-jdk-alpine", packageManager: "sbt", minLanguageVersion: "11" },
+    zio_http:       { languageVersion: "21", frameworkVersion: "3.x", dockerImage: "eclipse-temurin:21-jdk-alpine", packageManager: "sbt", minLanguageVersion: "11" },
+  },
+
+  // Dart
+  dart: {
+    shelf:      { languageVersion: "3.5", frameworkVersion: "1.x", dockerImage: "dart:stable", packageManager: "pub", minLanguageVersion: "3.0" },
+    angel3:     { languageVersion: "3.5", frameworkVersion: "8.x", dockerImage: "dart:stable", packageManager: "pub", minLanguageVersion: "3.0" },
+    serverpod:  { languageVersion: "3.5", frameworkVersion: "2.x", dockerImage: "dart:stable", packageManager: "pub", minLanguageVersion: "3.3" },
+  },
+
+  // Crystal
+  crystal: {
+    kemal: { languageVersion: "1.13", frameworkVersion: "1.x", dockerImage: "crystal:latest", packageManager: "shards", minLanguageVersion: "1.9" },
+    lucky: { languageVersion: "1.13", frameworkVersion: "1.x", dockerImage: "crystal:latest", packageManager: "shards", minLanguageVersion: "1.9" },
+  },
+
+  // Perl
+  perl: {
+    mojolicious: { languageVersion: "5.38", frameworkVersion: "9.x", dockerImage: "perl:5.38-slim", packageManager: "cpanm", minLanguageVersion: "5.28" },
+    dancer2:     { languageVersion: "5.38", frameworkVersion: "2.x", dockerImage: "perl:5.38-slim", packageManager: "cpanm", minLanguageVersion: "5.28" },
+  },
+
+  // R
+  r: {
+    plumber: { languageVersion: "4.3", frameworkVersion: "1.x", dockerImage: "r-base:4.3.2", packageManager: "install.packages", minLanguageVersion: "4.0" },
+  },
+
+  // Julia
+  julia: {
+    geniejl: { languageVersion: "1.10", frameworkVersion: "5.x", dockerImage: "julia:1.10", packageManager: "Pkg", minLanguageVersion: "1.9" },
+  },
+
+  // Clojure
+  clojure: {
+    ring:      { languageVersion: "21", frameworkVersion: "1.x", dockerImage: "clojure:temurin-21-lein", packageManager: "lein", minLanguageVersion: "11" },
+    pedestal:  { languageVersion: "21", frameworkVersion: "0.6.x", dockerImage: "clojure:temurin-21-lein", packageManager: "lein", minLanguageVersion: "11" },
+  },
+
+  // Haskell
+  haskell: {
+    servant: { languageVersion: "9.4", frameworkVersion: "0.20.x", dockerImage: "haskell:9.4-slim", packageManager: "stack", minLanguageVersion: "9.0" },
+    yesod:   { languageVersion: "9.4", frameworkVersion: "1.6.x",  dockerImage: "haskell:9.4-slim", packageManager: "stack", minLanguageVersion: "9.0" },
+  },
+
+  // Zig
+  zig: {
+    zap: { languageVersion: "0.13", frameworkVersion: "0.x", dockerImage: "alpine:3.19", packageManager: "zig build", minLanguageVersion: "0.11" },
+  },
 }
 
 // ─── Database Docker Images & Versions ──────────────────────────────────────
@@ -246,8 +306,15 @@ export function getDockerImage(language: string, framework: string): string {
     csharp: "mcr.microsoft.com/dotnet/sdk:8.0-alpine",
     elixir: "elixir:1.16-alpine",
     swift: "swift:5.10-slim",
-    dart: "dart:3.3-alpine",
+    dart: "dart:stable",
     scala: "eclipse-temurin:21-jdk-alpine",
+    crystal: "crystal:latest",
+    perl: "perl:5.38-slim",
+    r: "r-base:4.3.2",
+    julia: "julia:1.10",
+    clojure: "clojure:temurin-21-lein",
+    haskell: "haskell:9.4-slim",
+    zig: "alpine:3.19",
   }
   return fallbacks[language.toLowerCase()] ?? "ubuntu:22.04"
 }
@@ -261,6 +328,9 @@ export function getPackageManager(language: string, framework: string): string {
     java: "maven", kotlin: "gradle", go: "go mod",
     rust: "cargo", php: "composer", ruby: "bundler",
     csharp: "dotnet", elixir: "mix", swift: "spm",
+    scala: "sbt", dart: "pub", crystal: "shards",
+    perl: "cpanm", r: "install.packages", julia: "Pkg",
+    clojure: "lein", haskell: "stack", zig: "zig build",
   }
   return fallbacks[language.toLowerCase()] ?? "npm"
 }
