@@ -16,6 +16,7 @@ export default function Header() {
     { name: "AI Assistant", href: "/ai-assistant" },
     { name: "Templates", href: "/templates" },
     { name: "Stacks", href: "/stacks" },
+    { name: "Docs", href: "/docs" },
     { name: "Pricing", href: "/pricing" },
   ]
 
