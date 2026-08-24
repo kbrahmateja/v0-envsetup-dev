@@ -18,8 +18,8 @@ export const languages = [
 ]
 
 export const frameworks: Record<string, string[]> = {
-  javascript: ["React", "Vue", "Angular", "Express", "Next.js", "Nuxt.js"],
-  typescript: ["React", "Vue", "Angular", "Express", "Next.js", "NestJS"],
+  javascript: ["React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "Nuxt.js"],
+  typescript: ["React", "Vue", "Angular", "Svelte", "SolidJS", "Express", "Next.js", "NestJS"],
   python: ["Django", "Flask", "FastAPI", "Streamlit", "Jupyter"],
   java: ["Spring Boot", "Spring MVC", "Quarkus", "Micronaut"],
   csharp: [".NET Core", "ASP.NET", "Blazor", "MAUI"],

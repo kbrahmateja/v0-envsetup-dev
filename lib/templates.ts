@@ -5,7 +5,7 @@ export interface Template {
   author: string; rating: number; downloads: number; views: number; updatedAt: string;
 }
 
-// 327 templates across 21 languages
+// 331 templates across 21 languages
 export const templates: Template[] = [
   {
     "id": "jav_expres_post_0",
@@ -7194,6 +7194,90 @@ export const templates: Template[] = [
     "rating": 4.4,
     "downloads": 433,
     "views": 1298,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "jav_svelte_none_327",
+    "slug": "javascript-svelte",
+    "name": "Svelte",
+    "category": "Frontend",
+    "description": "Svelte (JavaScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "JavaScript",
+      "Svelte",
+      "Frontend"
+    ],
+    "popular": true,
+    "featured": false,
+    "language": "javascript",
+    "framework": "svelte",
+    "author": "envsetup.dev",
+    "rating": 4.7,
+    "downloads": 745,
+    "views": 2033,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "typ_svelte_none_328",
+    "slug": "typescript-svelte",
+    "name": "Svelte",
+    "category": "Frontend",
+    "description": "Svelte (TypeScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "TypeScript",
+      "Svelte",
+      "Frontend"
+    ],
+    "popular": false,
+    "featured": false,
+    "language": "typescript",
+    "framework": "svelte",
+    "author": "envsetup.dev",
+    "rating": 4.7,
+    "downloads": 812,
+    "views": 2210,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "jav_solidjs_none_329",
+    "slug": "javascript-solidjs",
+    "name": "SolidJS",
+    "category": "Frontend",
+    "description": "SolidJS (JavaScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "JavaScript",
+      "SolidJS",
+      "Frontend"
+    ],
+    "popular": false,
+    "featured": false,
+    "language": "javascript",
+    "framework": "solidjs",
+    "author": "envsetup.dev",
+    "rating": 4.5,
+    "downloads": 298,
+    "views": 876,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "typ_solidjs_none_330",
+    "slug": "typescript-solidjs",
+    "name": "SolidJS",
+    "category": "Frontend",
+    "description": "SolidJS (TypeScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "TypeScript",
+      "SolidJS",
+      "Frontend"
+    ],
+    "popular": false,
+    "featured": false,
+    "language": "typescript",
+    "framework": "solidjs",
+    "author": "envsetup.dev",
+    "rating": 4.5,
+    "downloads": 341,
+    "views": 951,
     "updatedAt": "2026-08-24"
   }
 ]

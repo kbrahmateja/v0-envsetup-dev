@@ -101,10 +101,9 @@ const LANGUAGE_FRAMEWORK_CASES: Array<{ language: string; framework: string }> =
   { language: "rust", framework: "Actix" },
   { language: "php", framework: "Laravel" },
   { language: "ruby", framework: "Rails" },
-  // Swift has no dedicated branch in generateDockerfile -- it's expected to
-  // fall through to the generic fallback. Included specifically to lock in
-  // that it degrades gracefully instead of throwing or emitting garbage.
   { language: "swift", framework: "Vapor" },
+  { language: "javascript", framework: "React" },
+  { language: "typescript", framework: "SolidJS" },
 ]
 
 describe("generateDockerfile across every language the generator UI offers", () => {
@@ -126,7 +125,7 @@ describe("generateDockerfile across every language the generator UI offers", () 
     })
   }
 
-  it("swift falls back to the generic Dockerfile template (no dedicated branch exists)", () => {
+  it("swift builds via SPM and runs the compiled binary, not the generic placeholder", () => {
     const dockerfile = generateDockerfile({
       projectName: "combo-app",
       language: "swift",
@@ -135,7 +134,62 @@ describe("generateDockerfile across every language the generator UI offers", () 
       tools: [],
       serverType: "local",
     })
-    expect(dockerfile).toContain("Configure CMD for your app")
+    expect(dockerfile).not.toContain("Configure CMD for your app")
+    expect(dockerfile).toContain("swift build -c release")
+    expect(dockerfile).toContain("ENTRYPOINT")
+  })
+
+  it("React/Vue/Angular/Svelte/SolidJS build a static bundle and serve it with Nginx", () => {
+    for (const framework of ["React", "Vue", "Angular", "Svelte", "SolidJS"]) {
+      const dockerfile = generateDockerfile({
+        projectName: "combo-app",
+        language: "typescript",
+        framework,
+        databases: [],
+        tools: [],
+        serverType: "local",
+      })
+      expect(dockerfile).toContain("nginx")
+      expect(dockerfile).toContain("RUN")
+      expect(dockerfile).toContain("run build")
+    }
+  })
+
+  it("NestJS builds with full deps then runs the compiled dist/main.js with production-only deps", () => {
+    const dockerfile = generateDockerfile({
+      projectName: "combo-app",
+      language: "typescript",
+      framework: "NestJS",
+      databases: [],
+      tools: [],
+      serverType: "local",
+    })
+    expect(dockerfile).toContain("AS builder")
+    expect(dockerfile).toContain("dist/main.js")
+    expect(dockerfile).not.toContain("node src/index.js")
+  })
+
+  it("uses the project name for the published .NET assembly instead of a hardcoded app.dll", () => {
+    const dockerfile = generateDockerfile({
+      projectName: "my-api",
+      language: "csharp",
+      framework: ".NET Core",
+      databases: [],
+      tools: [],
+      serverType: "local",
+    })
+    expect(dockerfile).toContain("my-api.dll")
+    expect(dockerfile).not.toContain('"app.dll"')
+  })
+
+  it("uses the streamlit CLI for Streamlit and the jupyter CLI for Jupyter, not python main.py", () => {
+    const streamlit = generateDockerfile({ projectName: "p", language: "python", framework: "Streamlit", databases: [], tools: [], serverType: "local" })
+    expect(streamlit).toContain("streamlit")
+    expect(streamlit).not.toContain('CMD ["python", "main.py"]')
+
+    const jupyter = generateDockerfile({ projectName: "p", language: "python", framework: "Jupyter", databases: [], tools: [], serverType: "local" })
+    expect(jupyter).toContain("jupyter")
+    expect(jupyter).not.toContain('CMD ["python", "main.py"]')
   })
 
   it("uses a multi-stage build with the JRE runtime for java", () => {

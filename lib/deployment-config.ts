@@ -25,7 +25,7 @@ export function generateDockerfile(config: EnvironmentConfig): string {
     // such entrypoint exists in a Vite/CRA/Angular-CLI project). Build the
     // static output and serve it with Nginx instead, same pattern used for
     // every other production static-site deploy.
-    if (fw === "react" || fw === "vue" || fw === "angular") {
+    if (fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs") {
       const buildOutDir = fw === "angular" ? `dist/${config.projectName}` : "dist"
       return `FROM ${baseImage} AS builder
 WORKDIR /app
@@ -38,6 +38,29 @@ FROM nginx:alpine
 COPY --from=builder /app/${buildOutDir} /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+`
+    }
+    // NestJS ships its own CLI/build toolchain as devDependencies, so a
+    // single-stage "npm ci --only=production" (below) never has `nest` or
+    // TypeScript available to build, and even if it did, `npm run start`
+    // launches Nest's dev-mode watcher, not a production server. Same bug
+    // class as React/Vue/Angular: build with full deps in one stage, then
+    // run the compiled dist/main.js with only production deps installed.
+    if (fw === "nestjs") {
+      return `FROM ${baseImage} AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN ${pm} ci
+COPY . .
+RUN ${pm} run build
+
+FROM ${baseImage}
+WORKDIR /app
+COPY package*.json ./
+RUN ${pm} ci --only=production
+COPY --from=builder /app/dist ./dist
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
 `
     }
     const isBun = baseImage.includes("bun")
@@ -64,12 +87,20 @@ ${buildStep}
   }
 
   if (lang === "python") {
+    // Streamlit and Jupyter were both falling to the generic "python main.py"
+    // fallback below, which does not start either of them - Streamlit apps
+    // are launched via the `streamlit` CLI (calling the script directly skips
+    // its server bootstrap), and Jupyter has no "main.py" entrypoint at all.
     const cmd = fw.includes("fastapi") || fw.includes("starlette") || fw.includes("litestar")
       ? 'CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]'
       : fw.includes("django")
       ? 'CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]'
       : fw.includes("flask")
       ? 'CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000"]'
+      : fw.includes("streamlit")
+      ? 'CMD ["streamlit", "run", "app.py", "--server.port=8000", "--server.address=0.0.0.0"]'
+      : fw.includes("jupyter")
+      ? 'CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8000", "--no-browser", "--allow-root"]'
       : 'CMD ["python", "main.py"]'
     return `FROM ${baseImage}
 WORKDIR /app
@@ -158,6 +189,11 @@ CMD ${fw.includes("rails") ? '["bundle", "exec", "rails", "server", "-b", "0.0.0
   }
 
   if (lang === "csharp") {
+    // `dotnet publish` names the output DLL after the .csproj file, not
+    // literally "app.dll" - this was hardcoded, so the container only ever
+    // worked if the user's project file happened to be named "app.csproj".
+    // projectName is already the identifier this generator uses everywhere
+    // else (compose service names, k8s labels), so use it here too.
     return `FROM ${baseImage} AS build
 WORKDIR /src
 COPY *.csproj ./
@@ -170,7 +206,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "app.dll"]
+ENTRYPOINT ["dotnet", "${config.projectName}.dll"]
 `
   }
 
@@ -194,6 +230,34 @@ CMD ["./bin/app", "start"]
 `
   }
 
+  if (lang === "swift") {
+    // Swift had no branch here at all - every Swift selection (Vapor,
+    // Perfect, Kitura) fell straight to the non-functional generic
+    // fallback below. The built executable's name comes from the Package.swift
+    // target, which this generator has no way to know in advance, so the
+    // build stage locates whatever executable Swift Package Manager produced
+    // and stages it under a fixed name rather than guessing the target name.
+    return `FROM ${baseImage} AS builder
+WORKDIR /app
+COPY Package.swift Package.resolved* ./
+RUN swift package resolve
+COPY . .
+RUN mkdir -p Public Resources
+RUN swift build -c release --static-swift-stdlib
+RUN mkdir -p /staging && \\
+    cp "$(find $(swift build -c release --show-bin-path) -maxdepth 1 -type f -perm -u+x | head -n1)" /staging/app
+
+FROM ${baseImage}
+WORKDIR /app
+COPY --from=builder /staging/app ./app
+COPY --from=builder /app/Public ./Public
+COPY --from=builder /app/Resources ./Resources
+EXPOSE 8080
+ENTRYPOINT ["./app"]
+CMD ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
+`
+  }
+
   // Generic fallback
   return `FROM ${baseImage}
 WORKDIR /app
@@ -206,7 +270,7 @@ CMD ["/bin/sh", "-c", "echo 'Configure CMD for your app'"]
 // ─── docker-compose.yml Generator ───────────────────────────────────────────
 export function generateDockerCompose(config: EnvironmentConfig): string {
   const fw = config.framework?.toLowerCase() ?? ""
-  const isFrontend = fw === "react" || fw === "vue" || fw === "angular"
+  const isFrontend = fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs"
   const port = isFrontend
     ? 80
     : ["java", "kotlin", "csharp", "go", "rust", "elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000
@@ -277,7 +341,7 @@ ${dbServices.join("\n\n")}${volumes}
 // ─── .env.example Generator ─────────────────────────────────────────────────
 export function generateEnvExample(config: EnvironmentConfig): string {
   const fw = config.framework?.toLowerCase() ?? ""
-  const isFrontend = fw === "react" || fw === "vue" || fw === "angular"
+  const isFrontend = fw === "react" || fw === "vue" || fw === "angular" || fw === "svelte" || fw === "solidjs"
   const lines: string[] = [
     `# ${config.projectName} — Environment Variables`,
     `# Copy to .env and fill in your values`,
