@@ -25,25 +25,29 @@ export default function EnvironmentPreview({ projectData, onDownloadZip }: Envir
   // app/api/generate-deployment/route.ts uses for the actual ZIP. That's
   // how a user could uncheck "Docker" and still get a Dockerfile: the
   // preview's file tree hid Dockerfile/docker-compose.yml behind that
-  // checkbox, while the real route always includes them unconditionally.
-  // The package.json tab was worse - EnvSetup doesn't generate a
-  // package.json at all, so that tab was previewing a file that would
-  // never actually be in the download. Calling the real generator
-  // functions here means the preview can't drift from reality again.
+  // checkbox, while the real route (at the time) always included them
+  // unconditionally regardless. That's fixed on both sides now: the route
+  // really does skip Dockerfile/docker-compose.yml/.gitignore when "docker"/
+  // "git" aren't selected, and this preview mirrors that same condition
+  // instead of guessing. The package.json tab was removed entirely -
+  // EnvSetup doesn't generate a package.json at all.
   const toolFiles = generateToolFiles(projectData)
+  const hasDocker = projectData.tools.includes("docker")
+  const hasGit = projectData.tools.includes("git")
 
   const generateFileStructure = () => {
-    // Mirrors app/api/generate-deployment/route.ts exactly: these five are
-    // unconditional, everything else comes from the same generateToolFiles()
-    // call the real ZIP uses.
-    const structure = [
-      `${projectData.projectName}/`,
-      "├── Dockerfile",
-      "├── docker-compose.yml",
-      "├── .env.example",
-      "├── README.md",
-      "├── .gitignore",
-    ]
+    // Mirrors app/api/generate-deployment/route.ts exactly: Dockerfile/
+    // docker-compose.yml only when "docker" is checked, .gitignore only
+    // when "git" is checked, .env.example/README.md always, everything
+    // else from the same generateToolFiles() call the real ZIP uses.
+    const structure = [`${projectData.projectName}/`]
+    if (hasDocker) {
+      structure.push("├── Dockerfile", "├── docker-compose.yml")
+    }
+    structure.push("├── .env.example", "├── README.md")
+    if (hasGit) {
+      structure.push("├── .gitignore")
+    }
     for (const path of Object.keys(toolFiles)) {
       structure.push(`├── ${path}`)
     }
@@ -175,6 +179,11 @@ export default function EnvironmentPreview({ projectData, onDownloadZip }: Envir
 
             <TabsContent value="dockerfile" className="mt-4">
               <div className="relative">
+                {!hasDocker && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    The &quot;Docker&quot; tool isn&apos;t checked, so this file won&apos;t be in your download. Shown here as a preview only.
+                  </p>
+                )}
                 <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
                   <code>{generateDockerfile(projectData)}</code>
                 </pre>

@@ -24,19 +24,25 @@ export { sanitizeLanguage, sanitizeFramework }
 
 // Tools available for every language.
 //
-// "Docker" and "Git" used to be listed here as checkboxes, but neither one
-// was ever actually read anywhere in the generator - app/api/generate-
-// deployment/route.ts unconditionally adds Dockerfile/docker-compose.yml/
-// .env.example and .gitignore to every download regardless of what's
-// checked here. That made both checkboxes pure decoration: unchecking
-// "Docker" (as a user found) still produced a Dockerfile, which reads as
-// a bug even though nothing was crashing. Since Docker/Git output is core
-// to every generation, not an optional add-on the way ESLint or Jest are,
-// removing the checkboxes is the honest fix rather than wiring them up to
-// gate output that's supposed to always be there.
+// "Docker" and "Git" used to be listed here as checkboxes that did nothing -
+// app/api/generate-deployment/route.ts unconditionally added Dockerfile/
+// docker-compose.yml/.gitignore to every download regardless of what was
+// checked. Unchecking "Docker" still produced a Dockerfile, which a user
+// correctly flagged as a bug. That's now fixed by actually gating those
+// files on these two checkboxes in the route - see route.ts. Checked by
+// default (DEFAULT_TOOLS below) since most visitors come here specifically
+// for the Docker setup.
 const universalTools = [
+  { id: "docker", label: "Docker (Dockerfile + docker-compose.yml)" },
+  { id: "git", label: "Git (.gitignore)" },
   { id: "github-actions", label: "GitHub Actions" },
 ]
+
+// Checked by default on a fresh form, so the common case (visitor picks a
+// language and clicks Generate without touching any checkbox) still gets
+// the Docker setup this site exists to produce. Templates/AI-assistant
+// hand-offs still get to override with an explicit tools param.
+const DEFAULT_TOOLS = ["docker", "git"]
 
 // Infrastructure tools — language-agnostic, shown as a separate section.
 const infraTools = [
@@ -105,7 +111,7 @@ export default function GeneratorForm() {
           language,
           framework,
           description: t.description || "",
-          tools: [] as string[],
+          tools: [...DEFAULT_TOOLS] as string[],
         }
       } catch { /* ignore */ }
     }
@@ -116,7 +122,7 @@ export default function GeneratorForm() {
       language,
       framework,
       description: searchParams?.get("description") || "",
-      tools: [] as string[],
+      tools: [...DEFAULT_TOOLS] as string[],
     }
   }
 
