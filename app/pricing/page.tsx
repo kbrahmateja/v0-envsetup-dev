@@ -13,7 +13,7 @@ const plans = [
     name: "Free",
     price: "$0",
     description: "Perfect for getting started",
-    features: ["5 environments per month", "Basic templates", "ZIP download", "Community support"],
+    features: ["Unlimited environments", "Basic templates", "ZIP download", "Community support"],
     popular: false,
   },
   {
@@ -84,7 +84,7 @@ export default function PricingPage() {
                 <CardTitle className="text-2xl">{plan.name}</CardTitle>
                 <div className="text-4xl font-bold">
                   {plan.price}
-                  <span className="text-lg font-normal text-muted-foreground">/month</span>
+                  <span className="text-lg font-normal text-muted-foreground"> forever</span>
                 </div>
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
@@ -123,22 +123,27 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold mb-4">Frequently Asked Questions</h2>
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="text-left">
-              <h3 className="font-semibold mb-2">Can I change plans anytime?</h3>
+              <h3 className="font-semibold mb-2">Is there a limit on how many environments I can generate?</h3>
               <p className="text-muted-foreground">
-                Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
+                No. The Free plan is unlimited &mdash; generate as many environments as you need, with no caps or
+                sign-up required.
               </p>
             </div>
 
             <div className="text-left">
-              <h3 className="font-semibold mb-2">What happens if I exceed my limits?</h3>
+              <h3 className="font-semibold mb-2">When will Pro and Team plans launch?</h3>
               <p className="text-muted-foreground">
-                On the free plan, you&apos;ll be prompted to upgrade. Pro and Team plans have no limits.
+                We&apos;re still building them out. Join the waitlist above and we&apos;ll email you as soon as
+                they&apos;re available, along with your early-access discount.
               </p>
             </div>
 
             <div className="text-left">
               <h3 className="font-semibold mb-2">Do you offer refunds?</h3>
-              <p className="text-muted-foreground">Yes, we offer a 30-day money-back guarantee on all paid plans.</p>
+              <p className="text-muted-foreground">
+                There are no paid plans yet, so there&apos;s nothing to refund. Once Pro and Team launch, we&apos;ll
+                publish a clear refund policy here.
+              </p>
             </div>
           </div>
         </div>
