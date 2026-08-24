@@ -47,7 +47,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.65 0.25 250); /* Blue primary */
+  --primary: oklch(0.5 0.25 250); /* Blue primary - darkened from 0.65 for WCAG AA text contrast (was 3.22:1 against primary-foreground, now 5.55:1) */
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.65 0.25 300); /* Purple secondary */
   --secondary-foreground: oklch(0.985 0 0);

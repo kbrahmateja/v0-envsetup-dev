@@ -16,6 +16,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center space-x-3">
               <Link href="https://github.com/kbrahmateja/v0-envsetup-dev" target="_blank"
+                aria-label="GitHub"
                 className="text-muted-foreground hover:text-foreground">
                 <Github className="h-4 w-4" />
               </Link>
