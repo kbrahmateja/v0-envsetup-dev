@@ -25,6 +25,9 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
 
   // JavaScript
   javascript: {
+    react:      { languageVersion: "20.x", frameworkVersion: "19.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    vue:        { languageVersion: "20.x", frameworkVersion: "3.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    angular:    { languageVersion: "20.x", frameworkVersion: "17.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
     express:    { languageVersion: "20.x", frameworkVersion: "4.18.x", dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "14.x" },
     fastify:    { languageVersion: "20.x", frameworkVersion: "4.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },
     koa:        { languageVersion: "20.x", frameworkVersion: "2.15.x", dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "14.x" },
@@ -39,6 +42,8 @@ export const frameworkVersions: Record<string, Record<string, VersionInfo>> = {
 
   // TypeScript
   typescript: {
+    react:      { languageVersion: "20.x", frameworkVersion: "19.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
+    vue:        { languageVersion: "20.x", frameworkVersion: "3.x",    dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.x" },
     nextjs:     { languageVersion: "20.x", frameworkVersion: "15.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "18.17.x",
                   notes: "Next.js 15 requires Node.js 18.17+ and React 19" },
     nestjs:     { languageVersion: "20.x", frameworkVersion: "10.x",   dockerImage: "node:20-alpine", packageManager: "npm", minLanguageVersion: "16.x" },

@@ -9,7 +9,7 @@ import Link from "next/link"
 import { ArrowRight, Search } from "lucide-react"
 import { templates } from "@/lib/templates"
 
-const categories = ["All", "Full Stack", "Backend"]
+const categories = ["All", "Full Stack", "Backend", "Frontend"]
 
 const languageColors: Record<string, string> = {
   javascript: "bg-yellow-100 text-yellow-800",

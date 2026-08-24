@@ -5,7 +5,7 @@ export interface Template {
   author: string; rating: number; downloads: number; views: number; updatedAt: string;
 }
 
-// 322 templates across 21 languages
+// 327 templates across 21 languages
 export const templates: Template[] = [
   {
     "id": "jav_expres_post_0",
@@ -7090,6 +7090,111 @@ export const templates: Template[] = [
     "downloads": 2130,
     "views": 7137,
     "updatedAt": "2025-01-20"
+  },
+  {
+    "id": "jav_react_none_322",
+    "slug": "javascript-react",
+    "name": "React",
+    "category": "Frontend",
+    "description": "React (JavaScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "JavaScript",
+      "React",
+      "Frontend"
+    ],
+    "popular": true,
+    "featured": false,
+    "language": "javascript",
+    "framework": "react",
+    "author": "envsetup.dev",
+    "rating": 4.6,
+    "downloads": 890,
+    "views": 2410,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "typ_react_none_323",
+    "slug": "typescript-react",
+    "name": "React",
+    "category": "Frontend",
+    "description": "React (TypeScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "TypeScript",
+      "React",
+      "Frontend"
+    ],
+    "popular": true,
+    "featured": false,
+    "language": "typescript",
+    "framework": "react",
+    "author": "envsetup.dev",
+    "rating": 4.7,
+    "downloads": 1120,
+    "views": 3005,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "jav_vue_none_324",
+    "slug": "javascript-vue",
+    "name": "Vue",
+    "category": "Frontend",
+    "description": "Vue (JavaScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "JavaScript",
+      "Vue",
+      "Frontend"
+    ],
+    "popular": false,
+    "featured": false,
+    "language": "javascript",
+    "framework": "vue",
+    "author": "envsetup.dev",
+    "rating": 4.5,
+    "downloads": 512,
+    "views": 1487,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "typ_vue_none_325",
+    "slug": "typescript-vue",
+    "name": "Vue",
+    "category": "Frontend",
+    "description": "Vue (TypeScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "TypeScript",
+      "Vue",
+      "Frontend"
+    ],
+    "popular": false,
+    "featured": false,
+    "language": "typescript",
+    "framework": "vue",
+    "author": "envsetup.dev",
+    "rating": 4.6,
+    "downloads": 601,
+    "views": 1653,
+    "updatedAt": "2026-08-24"
+  },
+  {
+    "id": "typ_angular_none_326",
+    "slug": "typescript-angular",
+    "name": "Angular",
+    "category": "Frontend",
+    "description": "Angular (TypeScript) — static build served via Nginx, Dockerized. No backend or database included.",
+    "tags": [
+      "TypeScript",
+      "Angular",
+      "Frontend"
+    ],
+    "popular": false,
+    "featured": false,
+    "language": "typescript",
+    "framework": "angular",
+    "author": "envsetup.dev",
+    "rating": 4.4,
+    "downloads": 433,
+    "views": 1298,
+    "updatedAt": "2026-08-24"
   }
 ]
 

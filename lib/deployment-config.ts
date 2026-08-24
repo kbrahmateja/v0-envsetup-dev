@@ -19,6 +19,27 @@ export function generateDockerfile(config: EnvironmentConfig): string {
   const info = getVersionInfo(lang, fw)
 
   if (lang === "javascript" || lang === "typescript") {
+    // React/Vue/Angular are static SPAs, not Node servers - they were falling
+    // through to the generic "npm ci --only=production" + "node src/index.js"
+    // branch below, which produces a Dockerfile that can't actually run (no
+    // such entrypoint exists in a Vite/CRA/Angular-CLI project). Build the
+    // static output and serve it with Nginx instead, same pattern used for
+    // every other production static-site deploy.
+    if (fw === "react" || fw === "vue" || fw === "angular") {
+      const buildOutDir = fw === "angular" ? `dist/${config.projectName}` : "dist"
+      return `FROM ${baseImage} AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN ${pm} ci
+COPY . .
+RUN ${pm} run build
+
+FROM nginx:alpine
+COPY --from=builder /app/${buildOutDir} /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+`
+    }
     const isBun = baseImage.includes("bun")
     if (isBun) {
       return `FROM oven/bun:1-alpine
@@ -184,7 +205,11 @@ CMD ["/bin/sh", "-c", "echo 'Configure CMD for your app'"]
 
 // ─── docker-compose.yml Generator ───────────────────────────────────────────
 export function generateDockerCompose(config: EnvironmentConfig): string {
-  const port = ["java", "kotlin", "csharp", "go", "rust", "elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000
+  const fw = config.framework?.toLowerCase() ?? ""
+  const isFrontend = fw === "react" || fw === "vue" || fw === "angular"
+  const port = isFrontend
+    ? 80
+    : ["java", "kotlin", "csharp", "go", "rust", "elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000
   const dbServices: string[] = []
   const depends: string[] = []
   const envVars: string[] = []
@@ -251,13 +276,15 @@ ${dbServices.join("\n\n")}${volumes}
 
 // ─── .env.example Generator ─────────────────────────────────────────────────
 export function generateEnvExample(config: EnvironmentConfig): string {
+  const fw = config.framework?.toLowerCase() ?? ""
+  const isFrontend = fw === "react" || fw === "vue" || fw === "angular"
   const lines: string[] = [
     `# ${config.projectName} — Environment Variables`,
     `# Copy to .env and fill in your values`,
     "",
     "# App",
     "NODE_ENV=development",
-    `PORT=${["java","kotlin","csharp","go","rust","elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000}`,
+    `PORT=${isFrontend ? 80 : ["java","kotlin","csharp","go","rust","elixir"].includes(config.language.toLowerCase()) ? 8080 : 3000}`,
     "",
   ]
 
