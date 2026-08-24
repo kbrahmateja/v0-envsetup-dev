@@ -12,11 +12,15 @@ interface DateRangePickerProps {
   onDateRangeChange: (dateRange: DateRange | undefined) => void
 }
 
+function defaultRange(): DateRange {
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - 29)
+  return { from, to }
+}
+
 export default function DateRangePicker({ onDateRangeChange }: DateRangePickerProps) {
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(2024, 0, 1),
-    to: new Date(),
-  })
+  const [date, setDate] = useState<DateRange | undefined>(defaultRange())
 
   const handleDateChange = (newDate: DateRange | undefined) => {
     setDate(newDate)

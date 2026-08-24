@@ -5,12 +5,12 @@ interface VisitorOverviewProps {
   data: {
     totalVisitors: number
     pageViews: number
-    downloads: number
-    conversionRate: number
+    downloads: number | null
+    conversionRate: number | null
     visitorChange: number
     pageViewChange: number
-    downloadChange: number
-    conversionChange: number
+    downloadChange: number | null
+    conversionChange: number | null
   }
 }
 
@@ -19,27 +19,27 @@ export default function VisitorOverview({ data }: VisitorOverviewProps) {
     {
       title: "Total Visitors",
       value: data.totalVisitors.toLocaleString(),
-      change: data.visitorChange,
+      change: data.visitorChange as number | null,
       icon: Users,
-      description: "Unique visitors this month",
+      description: "Distinct IP addresses in this period",
     },
     {
       title: "Page Views",
       value: data.pageViews.toLocaleString(),
-      change: data.pageViewChange,
+      change: data.pageViewChange as number | null,
       icon: Eye,
       description: "Total page views",
     },
     {
       title: "Downloads",
-      value: data.downloads.toLocaleString(),
+      value: data.downloads !== null ? data.downloads.toLocaleString() : "—",
       change: data.downloadChange,
       icon: Download,
       description: "Environment downloads",
     },
     {
       title: "Conversion Rate",
-      value: `${data.conversionRate}%`,
+      value: data.conversionRate !== null ? `${data.conversionRate}%` : "—",
       change: data.conversionChange,
       icon: TrendingUp,
       description: "Visitor to download rate",
@@ -57,11 +57,17 @@ export default function VisitorOverview({ data }: VisitorOverviewProps) {
           <CardContent>
             <div className="text-2xl font-bold">{metric.value}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={metric.change >= 0 ? "text-green-600" : "text-red-600"}>
-                {metric.change >= 0 ? "+" : ""}
-                {metric.change}%
-              </span>{" "}
-              from last month
+              {metric.change !== null ? (
+                <>
+                  <span className={metric.change >= 0 ? "text-green-600" : "text-red-600"}>
+                    {metric.change >= 0 ? "+" : ""}
+                    {metric.change}%
+                  </span>{" "}
+                  vs. previous period
+                </>
+              ) : (
+                "Not tracked yet"
+              )}
             </p>
             <CardDescription className="mt-1">{metric.description}</CardDescription>
           </CardContent>

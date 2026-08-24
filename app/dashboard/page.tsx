@@ -1,16 +1,10 @@
-import AnalyticsDashboard from "@/components/analytics/analytics-dashboard"
+import { redirect } from "next/navigation"
 
-export default function DashboardPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Monitor your development environment usage and performance metrics</p>
-        </div>
-
-        <AnalyticsDashboard />
-      </div>
-    </div>
-  )
+// This page used to render a fully public, unauthenticated "Analytics
+// Dashboard" filled with mock/random data (see git history). It's been
+// replaced by a real, admin-gated version at /admin/analytics — this route
+// just forwards any old links/bookmarks there (middleware.ts enforces the
+// admin login for that path).
+export default function DashboardRedirectPage() {
+  redirect("/admin/analytics")
 }
