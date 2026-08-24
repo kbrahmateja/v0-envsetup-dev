@@ -2,20 +2,37 @@ import { generateDockerCompose, generateDockerfile, generateEnvExample, generate
 import JSZip from "jszip"
 import { sql } from "@/lib/db"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/next-auth-options"
 
 // Generous but real cap - a legitimate visitor might generate several
 // environments while experimenting, but nothing should be able to script
-// unlimited ZIP builds against this endpoint.
-const RATE_LIMIT = { limit: 30, windowMs: 60 * 60 * 1000 }
+// unlimited ZIP builds against this endpoint. Signed-in users get a higher
+// cap as one of the perks of the (optional) GitHub sign-in.
+const ANON_RATE_LIMIT = { limit: 30, windowMs: 60 * 60 * 1000 }
+const AUTH_RATE_LIMIT = { limit: 100, windowMs: 60 * 60 * 1000 }
+
+type Identity = { login?: string; email?: string }
 
 // Logs one row per successful generation so the homepage's "Environments
 // Generated" stat (components/hero-section.tsx) is a real count instead of
 // the hardcoded "10k+" placeholder it used to be. Self-heals the table on
 // first use so no manual migration step is required; never blocks or fails
 // the actual download if logging has a problem.
-async function logGeneration(config: EnvironmentConfig) {
+//
+// user_login/user_email are nullable — anonymous generations (the common
+// case, since sign-in is optional) simply log NULL there. Existing rows
+// predate these columns entirely, so both the INSERT and the CREATE TABLE
+// fallback need an ADD COLUMN IF NOT EXISTS step for databases that already
+// have the table from before this feature shipped.
+async function logGeneration(config: EnvironmentConfig, identity: Identity) {
+  const insert = () => sql`
+    INSERT INTO generations (language, framework, user_login, user_email)
+    VALUES (${config.language}, ${config.framework ?? null}, ${identity.login ?? null}, ${identity.email ?? null})
+  `
+
   try {
-    await sql`INSERT INTO generations (language, framework) VALUES (${config.language}, ${config.framework ?? null})`
+    await insert()
   } catch {
     try {
       await sql`
@@ -26,16 +43,22 @@ async function logGeneration(config: EnvironmentConfig) {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `
-      await sql`INSERT INTO generations (language, framework) VALUES (${config.language}, ${config.framework ?? null})`
+      await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS user_login VARCHAR(255)`
+      await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS user_email VARCHAR(255)`
+      await insert()
     } catch (retryErr) {
-      console.error("Failed to log generation (after create-table retry):", retryErr)
+      console.error("Failed to log generation (after create-table/add-column retry):", retryErr)
     }
   }
 }
 
 export async function POST(req: Request) {
   const ip = getClientIp(req)
-  const { allowed } = await checkRateLimit("generate-deployment", ip, RATE_LIMIT)
+  const session = await getServerSession(authOptions)
+  const identity: Identity = { login: session?.user?.login, email: session?.user?.email ?? undefined }
+
+  const rateLimitOpts = session ? AUTH_RATE_LIMIT : ANON_RATE_LIMIT
+  const { allowed } = await checkRateLimit("generate-deployment", ip, rateLimitOpts)
   if (!allowed) {
     return new Response(JSON.stringify({ error: "Too many requests. Please try again in a bit." }), {
       status: 429,
@@ -93,7 +116,7 @@ Thumbs.db
 
   const zipBlob = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
 
-  await logGeneration(config)
+  await logGeneration(config, identity)
 
   return new Response(zipBlob, {
     headers: {

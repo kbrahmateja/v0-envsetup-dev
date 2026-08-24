@@ -14,6 +14,7 @@ import Footer from "@/components/footer"
 import FeedbackWidget from "@/components/feedback-widget"
 import { AnalyticsScripts } from "@/components/analytics-scripts"
 import { CookieConsent } from "@/components/cookie-consent"
+import { AuthSessionProvider } from "@/components/providers/session-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -60,22 +61,24 @@ export default function RootLayout({
         <AnalyticsScripts />
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
-          <Suspense fallback={null}>
-            <PageTracker />
-          </Suspense>
-          <VisitorTracker />
-          <div className="flex min-h-screen flex-col">
-            <VersionsBanner />
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
-          <FeedbackWidget />
-          <CookieConsent />
-        </ThemeProvider>
+        <AuthSessionProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+            <Suspense fallback={null}>
+              <PageTracker />
+            </Suspense>
+            <VisitorTracker />
+            <div className="flex min-h-screen flex-col">
+              <VersionsBanner />
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </div>
+            <FeedbackWidget />
+            <CookieConsent />
+          </ThemeProvider>
+        </AuthSessionProvider>
         <Analytics />
       </body>
     </html>
