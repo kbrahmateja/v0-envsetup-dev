@@ -23,7 +23,7 @@ export default function GeneratorPage() {
                 <Bot className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-1">Need help choosing?</h3>
+                <h2 className="font-semibold text-lg mb-1">Need help choosing?</h2>
                 <p className="text-sm text-muted-foreground mb-3">
                   Not sure which tools and versions to pick? Let our AI assistant guide you through the perfect setup
                   for your project.

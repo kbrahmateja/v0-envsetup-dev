@@ -86,7 +86,7 @@ export default function FeedbackWidget() {
         <Button
           data-testid="feedback-widget-trigger"
           className="fixed bottom-6 right-6 z-50 h-12 rounded-full shadow-lg gap-2 px-4"
-          aria-label="Send a suggestion"
+          aria-label="Feedback"
         >
           <MessageSquarePlus className="h-5 w-5" />
           <span className="hidden sm:inline">Feedback</span>

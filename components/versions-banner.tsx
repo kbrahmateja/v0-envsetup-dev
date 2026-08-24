@@ -64,7 +64,7 @@ export function VersionsBanner() {
                 )}
               </div>
               <Button variant="ghost" size="icon" className="h-5 w-5 text-white hover:bg-white/20"
-                onClick={() => dismiss(key)}>
+                onClick={() => dismiss(key)} aria-label={`Dismiss ${update.display_name} update notice`}>
                 <X className="h-3 w-3" />
               </Button>
             </div>
