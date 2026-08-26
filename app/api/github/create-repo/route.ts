@@ -128,16 +128,37 @@ export async function POST(req: NextRequest) {
   // (not a single atomic commit), so a partial failure is possible - we
   // report which paths failed rather than pretending an all-or-nothing
   // transaction happened.
+  //
+  // auto_init:true above already commits a README.md (GitHub always creates
+  // one when initializing a repo this way) - the Contents API rejects a PUT
+  // for a path that already exists unless the request includes that file's
+  // current `sha`, otherwise it 422s with "sha wasn't supplied". README.md
+  // was the one file that reliably failed here because it's the one path
+  // guaranteed to already exist; every other generated file used to get
+  // lucky by not colliding with anything auto_init created. Checking for an
+  // existing sha first (and sending it as an update when found) makes every
+  // path safe, not just README.md, in case that ever changes.
   const failed: string[] = []
   for (const [path, content] of Object.entries(files)) {
+    let sha: string | undefined
+    const existingRes = await fetch(
+      `https://api.github.com/repos/${repoFullName}/contents/${encodeURIComponent(path)}`,
+      { headers: ghHeaders },
+    )
+    if (existingRes.ok) {
+      const existing = await existingRes.json().catch(() => null as { sha?: string } | null)
+      sha = existing?.sha
+    }
+
     const putRes = await fetch(
       `https://api.github.com/repos/${repoFullName}/contents/${encodeURIComponent(path)}`,
       {
         method: "PUT",
         headers: { ...ghHeaders, "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `Add ${path}`,
+          message: sha ? `Update ${path}` : `Add ${path}`,
           content: Buffer.from(content, "utf-8").toString("base64"),
+          ...(sha ? { sha } : {}),
         }),
       },
     )
