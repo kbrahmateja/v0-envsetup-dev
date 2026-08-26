@@ -17,18 +17,22 @@ export const authOptions: NextAuthOptions = {
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID ?? "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
-      // Default GitHub scope is read:user + user:email, which is enough for
-      // sign-in but NOT enough to create a repo - the "Push to GitHub"
-      // button (app/api/github/create-repo/route.ts) needs the `repo` scope
-      // to call POST /user/repos and PUT .../contents on the user's behalf.
-      // This does mean everyone who signs in - even people who just want
-      // the /history perk - sees GitHub's consent screen ask for repo
-      // access, not just profile access. That trade-off was a deliberate
-      // call, not an oversight: NextAuth has no clean way to step up an
-      // existing session to a wider scope later, so requesting it once at
-      // sign-in is what makes "Push to GitHub" actually work without a
-      // second consent flow bolted on.
-      authorization: { params: { scope: "read:user user:email repo" } },
+      // Default scope for the general "Sign in with GitHub" flow - profile
+      // only, enough for the /history perk and a higher rate limit. This
+      // used to also request `repo` for everyone, so every sign-in (even
+      // someone who never touches Push to GitHub) got asked to grant full
+      // read/write access to all their repos, public and private - more
+      // than the site needed from most people, and a scarier consent screen
+      // than a profile-only login deserves.
+      //
+      // Push to GitHub asks for `repo` separately, only from people who
+      // actually click that button, by passing a wider `scope` straight to
+      // signIn() at that call site (see components/github-push-dialog.tsx).
+      // GitHub's OAuth re-authorization merges newly granted scopes into the
+      // user's existing grant for this app rather than replacing it, so this
+      // works as true incremental consent - re-running the jwt() callback
+      // below with a fresh account.access_token that now includes `repo`.
+      authorization: { params: { scope: "read:user user:email" } },
     }),
   ],
   session: {

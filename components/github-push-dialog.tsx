@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -26,11 +26,20 @@ interface CreateResult {
   filesFailed: string[]
 }
 
+// The general site sign-in only requests profile scope (see
+// lib/next-auth-options.ts) - repo access is asked for right here instead,
+// only from people who actually open this dialog. Passing `scope` as
+// signIn()'s authorizationParams overrides the provider's default for just
+// this one call; GitHub merges it into whatever the user already granted
+// rather than replacing it, so this works whether they've never signed in,
+// or already have a profile-only grant and need to add repo access.
+const REPO_SCOPE = "read:user user:email repo"
+
 // Talks to app/api/github/create-repo/route.ts to actually create a repo
 // and push the generated files - replaces what used to be a "Push to
 // GitHub" button that only did `console.log("Creating GitHub
-// repository...")`. Requires the user to be signed in with GitHub's `repo`
-// scope (see lib/next-auth-options.ts); this dialog handles all three
+// repository...")`. Requires GitHub's `repo` scope, requested inline by
+// this component (see REPO_SCOPE above); this dialog handles all three
 // states: not signed in, the create form, and the result.
 export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialogProps) {
   const { status } = useSession()
@@ -134,7 +143,10 @@ export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialo
             <p className="text-sm text-muted-foreground">
               Sign in with GitHub to create a repository in your account.
             </p>
-            <Button onClick={() => signIn("github")} className="w-full">
+            <Button
+              onClick={() => signIn("github", undefined, { scope: REPO_SCOPE })}
+              className="w-full"
+            >
               <Github className="h-4 w-4 mr-2" />
               Sign in with GitHub
             </Button>
@@ -166,18 +178,21 @@ export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialo
             )}
 
             {needsReauth ? (
-              // Signing out and immediately back in gets a fresh JWT that
-              // actually carries an accessToken with repo scope - a plain
-              // retry of Create & push would just hit the same 401/403 again.
+              // signIn() re-runs the OAuth handshake even for an already
+              // signed-in user - no need to sign out first. GitHub merges
+              // the requested `repo` scope into the user's existing grant,
+              // and the resulting fresh account.access_token flows into a
+              // new JWT via the jwt() callback in lib/next-auth-options.ts.
+              // A plain retry of "Create & push files" would just hit the
+              // same 401/403 again, since nothing about the old token changes
+              // on its own.
               <Button
-                onClick={() => {
-                  signOut({ redirect: false }).then(() => signIn("github"))
-                }}
+                onClick={() => signIn("github", undefined, { scope: REPO_SCOPE })}
                 className="w-full"
                 size="lg"
               >
                 <Github className="h-4 w-4 mr-2" />
-                Sign out &amp; reconnect GitHub
+                Reconnect GitHub with repo access
               </Button>
             ) : (
               <Button onClick={handleCreate} disabled={creating || !repoName} className="w-full" size="lg">
