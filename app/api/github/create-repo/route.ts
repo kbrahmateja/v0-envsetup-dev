@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 import {
   generateDockerCompose,
@@ -20,8 +20,8 @@ import {
 // sign-in. A session created before that scope was added won't have it -
 // GitHub's API returns 403/404 in that case, which we turn into a
 // sign-out-and-back-in message rather than a raw API error.
-export async function POST(req: Request) {
-  const token = await getToken({ req: req as any })
+export async function POST(req: NextRequest) {
+  const token = await getToken({ req })
 
   if (!token?.accessToken) {
     return NextResponse.json(
