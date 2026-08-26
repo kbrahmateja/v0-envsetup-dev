@@ -1,4 +1,4 @@
-import { generateDockerCompose, generateDockerfile, generateEnvExample, generateReadme, generateToolFiles, type EnvironmentConfig } from "@/lib/deployment-config"
+import { generateDockerCompose, generateDockerfile, generateEnvExample, generateGitignore, generateReadme, generateToolFiles, type EnvironmentConfig } from "@/lib/deployment-config"
 import JSZip from "jszip"
 import { sql } from "@/lib/db"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
@@ -67,40 +67,7 @@ export async function POST(req: Request) {
   }
 
   if (tools.includes("git")) {
-    zip.file(".gitignore", `# Dependencies
-node_modules/
-vendor/
-target/
-.gradle/
-__pycache__/
-*.pyc
-.venv/
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Build
-dist/
-build/
-.next/
-out/
-
-# IDE
-.idea/
-.vscode/
-*.suo
-*.swp
-
-# Logs
-*.log
-logs/
-
-# OS
-.DS_Store
-Thumbs.db
-`)
+    zip.file(".gitignore", generateGitignore())
   }
 
   const zipBlob = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" })

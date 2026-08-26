@@ -10,10 +10,12 @@ import EnvironmentPreview from "@/components/environment-preview"
 import { Suspense } from "react"
 import type { EnvironmentConfig } from "@/lib/deployment-config"
 import { DeploymentDialog } from "@/components/deployment-dialog"
+import { GithubPushDialog } from "@/components/github-push-dialog"
 
 function ResultsContent() {
   const searchParams = useSearchParams()
   const [showDeployment, setShowDeployment] = useState(false)
+  const [showGithubPush, setShowGithubPush] = useState(false)
 
   const projectData = {
     projectName: searchParams?.get("projectName") ?? "",
@@ -103,7 +105,11 @@ function ResultsContent() {
             </CardContent>
           </Card>
 
-          <EnvironmentPreview projectData={envConfig} onDownloadZip={handleDownload} />
+          <EnvironmentPreview
+            projectData={envConfig}
+            onDownloadZip={handleDownload}
+            onPushToGithub={() => setShowGithubPush(true)}
+          />
 
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Button onClick={handleDownload} className="flex items-center gap-2">
@@ -114,16 +120,27 @@ function ResultsContent() {
               <Cloud className="h-4 w-4" />
               Deploy to Server
             </Button>
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 bg-transparent"
+              onClick={() => setShowGithubPush(true)}
+            >
               <Github className="h-4 w-4" />
               Push to GitHub
             </Button>
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent"
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 bg-transparent"
               onClick={() => {
-                const cmd = `npx @envsetup/cli init --name ${projectData.projectName} --language ${projectData.language}`
+                // `envsetup init` is fully interactive (@clack/prompts) and
+                // takes no --name/--language flags today - a command built
+                // with them would fail with "unknown option" the moment
+                // someone actually ran it. This is the real command.
+                const cmd = "npx @envsetup/cli init"
                 navigator.clipboard.writeText(cmd)
-                alert("CLI command copied!\n\n" + cmd)
-              }}>
+                alert(`CLI command copied!\n\n${cmd}\n\nIt's interactive - it'll prompt you for language/framework/tools the same way the web wizard does.`)
+              }}
+            >
               <Terminal className="h-4 w-4" />
               Copy CLI Command
             </Button>
@@ -132,6 +149,7 @@ function ResultsContent() {
       </div>
 
       <DeploymentDialog open={showDeployment} onOpenChange={setShowDeployment} config={envConfig} />
+      <GithubPushDialog open={showGithubPush} onOpenChange={setShowGithubPush} config={envConfig} />
     </>
   )
 }

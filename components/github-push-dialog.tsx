@@ -1,0 +1,177 @@
+"use client"
+
+import { useState } from "react"
+import { useSession, signIn } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Github, Loader2, CheckCircle2, ExternalLink, AlertTriangle } from "lucide-react"
+import type { EnvironmentConfig } from "@/lib/deployment-config"
+
+interface GithubPushDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  config: EnvironmentConfig
+}
+
+function sanitizeRepoName(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "envsetup-project"
+}
+
+interface CreateResult {
+  url: string
+  fullName: string
+  filesFailed: string[]
+}
+
+// Talks to app/api/github/create-repo/route.ts to actually create a repo
+// and push the generated files - replaces what used to be a "Push to
+// GitHub" button that only did `console.log("Creating GitHub
+// repository...")`. Requires the user to be signed in with GitHub's `repo`
+// scope (see lib/next-auth-options.ts); this dialog handles all three
+// states: not signed in, the create form, and the result.
+export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialogProps) {
+  const { status } = useSession()
+  const [repoName, setRepoName] = useState(() => sanitizeRepoName(config.projectName))
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<CreateResult | null>(null)
+
+  const handleCreate = async () => {
+    setCreating(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/github/create-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoName, isPrivate, config }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Something went wrong creating the repository.")
+        return
+      }
+      setResult(data)
+    } catch {
+      setError("Couldn't reach EnvSetup's server. Check your connection and try again.")
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const reset = () => {
+    setError(null)
+    setResult(null)
+    setCreating(false)
+    setRepoName(sanitizeRepoName(config.projectName))
+    setIsPrivate(false)
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange(next)
+        if (!next) reset()
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Github className="h-5 w-5" />
+            Push to GitHub
+          </DialogTitle>
+          <DialogDescription>
+            Creates a new repository on your GitHub account and pushes the generated files to it.
+          </DialogDescription>
+        </DialogHeader>
+
+        {result ? (
+          <div className="py-6 text-center space-y-4">
+            <CheckCircle2 className="h-14 w-14 text-green-500 mx-auto" />
+            <h3 className="text-lg font-semibold">Repository created</h3>
+            <div className="bg-muted p-4 rounded-lg text-left">
+              <p className="text-sm font-medium mb-1">{result.fullName}</p>
+              <a
+                href={result.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline text-sm inline-flex items-center gap-1"
+              >
+                {result.url}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            {result.filesFailed.length > 0 && (
+              <p className="text-sm text-amber-600 dark:text-amber-500">
+                {result.filesFailed.length} file{result.filesFailed.length > 1 ? "s" : ""} didn&apos;t push:{" "}
+                {result.filesFailed.join(", ")}. You can add {result.filesFailed.length > 1 ? "them" : "it"} manually
+                on GitHub.
+              </p>
+            )}
+            <Button onClick={() => onOpenChange(false)} className="w-full">
+              Close
+            </Button>
+          </div>
+        ) : status === "loading" ? (
+          <div className="py-10 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : status !== "authenticated" ? (
+          <div className="py-6 text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Sign in with GitHub to create a repository in your account.
+            </p>
+            <Button onClick={() => signIn("github")} className="w-full">
+              <Github className="h-4 w-4 mr-2" />
+              Sign in with GitHub
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="repo-name">Repository name</Label>
+              <Input
+                id="repo-name"
+                value={repoName}
+                onChange={(e) => setRepoName(sanitizeRepoName(e.target.value))}
+                disabled={creating}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="repo-private">Private repository</Label>
+                <p className="text-xs text-muted-foreground">Only you can see it on GitHub</p>
+              </div>
+              <Switch id="repo-private" checked={isPrivate} onCheckedChange={setIsPrivate} disabled={creating} />
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <Button onClick={handleCreate} disabled={creating || !repoName} className="w-full" size="lg">
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating repository…
+                </>
+              ) : (
+                <>
+                  <Github className="h-4 w-4 mr-2" />
+                  Create &amp; push files
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}

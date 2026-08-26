@@ -33,6 +33,48 @@ export function getAppPort(language: string, framework?: string): number {
   return 3000 // javascript/typescript backends, ruby, crystal, perl, zig, and any unlisted language
 }
 
+// ─── .gitignore ───────────────────────────────────────────────────────────────
+// Single source of truth so app/api/generate-deployment/route.ts (ZIP
+// download) and app/api/github/create-repo/route.ts (Push to GitHub) always
+// produce byte-identical .gitignore content instead of two copies drifting
+// apart over time.
+export function generateGitignore(): string {
+  return `# Dependencies
+node_modules/
+vendor/
+target/
+.gradle/
+__pycache__/
+*.pyc
+.venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+.next/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.swp
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+`
+}
+
 // ─── Dockerfile Generator ────────────────────────────────────────────────────
 export function generateDockerfile(config: EnvironmentConfig): string {
   const lang = config.language.toLowerCase()

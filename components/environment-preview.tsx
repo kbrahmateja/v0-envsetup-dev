@@ -15,10 +15,16 @@ interface EnvironmentPreviewProps {
   // this component still renders (falling back to a console.log stub)
   // if ever reused somewhere that hasn't wired a real download yet.
   onDownloadZip?: () => void | Promise<void>
+  // Opens the results page's GithubPushDialog. "Push to GitHub" used to
+  // just console.log("Creating GitHub repository...") - a user asked what
+  // was going on with these buttons alongside the working ZIP download, and
+  // this (plus the real /api/github/create-repo route) is the actual fix.
+  onPushToGithub?: () => void
 }
 
-export default function EnvironmentPreview({ projectData, onDownloadZip }: EnvironmentPreviewProps) {
+export default function EnvironmentPreview({ projectData, onDownloadZip, onPushToGithub }: EnvironmentPreviewProps) {
   const [copied, setCopied] = useState(false)
+  const [cliCopied, setCliCopied] = useState(false)
 
   // This preview used to hand-roll its own file tree, package.json, and
   // README - all independent guesses that didn't call the same functions
@@ -60,6 +66,13 @@ export default function EnvironmentPreview({ projectData, onDownloadZip }: Envir
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // The actual, currently-published `envsetup init` command is fully
+  // interactive (@clack/prompts) - it takes no --name/--language/--framework
+  // flags, so a pre-filled command would just error with "unknown option".
+  // This is the real command; it can't be pre-filled from the web form's
+  // choices until the CLI itself grows flags for that.
+  const cliCommand = "npx @envsetup/cli init"
+
   const handleDownload = (type: "zip" | "github" | "cli") => {
     trackDownload(type, `${projectData.language}-${projectData.framework || "basic"}`)
 
@@ -70,11 +83,15 @@ export default function EnvironmentPreview({ projectData, onDownloadZip }: Envir
         console.log("Downloading ZIP...")
       }
     } else if (type === "github") {
-      // In a real app, this would create a GitHub repo
-      console.log("Creating GitHub repository...")
+      if (onPushToGithub) {
+        onPushToGithub()
+      } else {
+        console.log("Creating GitHub repository...")
+      }
     } else if (type === "cli") {
-      // In a real app, this would show CLI instructions
-      console.log("Showing CLI instructions...")
+      navigator.clipboard.writeText(cliCommand)
+      setCliCopied(true)
+      setTimeout(() => setCliCopied(false), 2000)
     }
   }
 
@@ -138,8 +155,8 @@ export default function EnvironmentPreview({ projectData, onDownloadZip }: Envir
             >
               <Terminal className="w-6 h-6" />
               <div className="text-center">
-                <div className="font-semibold">Use CLI</div>
-                <div className="text-xs opacity-75">Generate with our CLI tool</div>
+                <div className="font-semibold">{cliCopied ? "Command copied!" : "Use CLI"}</div>
+                <div className="text-xs opacity-75">{cliCopied ? cliCommand : "Copies the CLI command"}</div>
               </div>
             </Button>
           </div>
