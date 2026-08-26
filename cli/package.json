@@ -2,7 +2,7 @@
   "name": "@envsetup/cli",
   "version": "0.6.0",
   "type": "module",
-  "description": "Generate dev environments for 23+ frameworks — Dockerfile, docker-compose, .env in seconds.",
+  "description": "Dockerfile generator and docker-compose generator CLI — scaffold a dev environment (Dockerfile, docker-compose.yml, .env) for 23+ frameworks in seconds.",
   "main": "./dist/index.js",
   "bin": {
     "envsetup": "./dist/index.js"
@@ -16,6 +16,13 @@
     "cli",
     "devops",
     "docker",
+    "dockerfile",
+    "dockerfile-generator",
+    "docker-compose",
+    "docker-compose-generator",
+    "dev-environment",
+    "scaffold",
+    "boilerplate",
     "nextjs",
     "automation",
     "environment",
