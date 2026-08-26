@@ -24,8 +24,19 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req })
 
   if (!token?.accessToken) {
+    // Most likely cause: this session's JWT was minted before the `repo`
+    // scope (and accessToken capture) were added to lib/next-auth-options.ts.
+    // NextAuth only re-runs the account-populated branch of the jwt()
+    // callback right after a fresh OAuth sign-in, so an existing session
+    // just silently lacks accessToken forever until the user re-authenticates
+    // - being "signed in" (status === "authenticated" client-side) doesn't
+    // mean the token actually has repo access. Say so explicitly instead of
+    // a bare "sign in first", which reads as wrong to someone already signed in.
     return NextResponse.json(
-      { error: "Sign in with GitHub first." },
+      {
+        error: "Your GitHub sign-in doesn't have repository access yet. Sign out and sign back in with GitHub to grant it.",
+        code: "REAUTH_REQUIRED",
+      },
       { status: 401 },
     )
   }
@@ -81,7 +92,10 @@ export async function POST(req: NextRequest) {
     }
     if (createRes.status === 401 || createRes.status === 403) {
       return NextResponse.json(
-        { error: "GitHub rejected the request. Your sign-in may predate repo access being requested — sign out and sign back in with GitHub, then try again." },
+        {
+          error: "GitHub rejected the request. Your sign-in may predate repo access being requested — sign out and sign back in with GitHub, then try again.",
+          code: "REAUTH_REQUIRED",
+        },
         { status: 403 },
       )
     }

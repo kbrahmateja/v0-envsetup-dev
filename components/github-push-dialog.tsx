@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useSession, signIn } from "next-auth/react"
+import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -38,11 +38,18 @@ export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialo
   const [isPrivate, setIsPrivate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // True when the API rejected the request because this session's token
+  // lacks GitHub repo access (stale session from before the `repo` scope was
+  // added, or a scope GitHub itself rejected) rather than a normal input
+  // error like a taken repo name. Retrying "Create & push files" as-is would
+  // just fail the same way again, so this swaps in a one-click fix instead.
+  const [needsReauth, setNeedsReauth] = useState(false)
   const [result, setResult] = useState<CreateResult | null>(null)
 
   const handleCreate = async () => {
     setCreating(true)
     setError(null)
+    setNeedsReauth(false)
     try {
       const res = await fetch("/api/github/create-repo", {
         method: "POST",
@@ -52,6 +59,7 @@ export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialo
       const data = await res.json()
       if (!res.ok) {
         setError(data.error || "Something went wrong creating the repository.")
+        setNeedsReauth(data.code === "REAUTH_REQUIRED")
         return
       }
       setResult(data)
@@ -64,6 +72,7 @@ export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialo
 
   const reset = () => {
     setError(null)
+    setNeedsReauth(false)
     setResult(null)
     setCreating(false)
     setRepoName(sanitizeRepoName(config.projectName))
@@ -156,19 +165,35 @@ export function GithubPushDialog({ open, onOpenChange, config }: GithubPushDialo
               </div>
             )}
 
-            <Button onClick={handleCreate} disabled={creating || !repoName} className="w-full" size="lg">
-              {creating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating repository…
-                </>
-              ) : (
-                <>
-                  <Github className="h-4 w-4 mr-2" />
-                  Create &amp; push files
-                </>
-              )}
-            </Button>
+            {needsReauth ? (
+              // Signing out and immediately back in gets a fresh JWT that
+              // actually carries an accessToken with repo scope - a plain
+              // retry of Create & push would just hit the same 401/403 again.
+              <Button
+                onClick={() => {
+                  signOut({ redirect: false }).then(() => signIn("github"))
+                }}
+                className="w-full"
+                size="lg"
+              >
+                <Github className="h-4 w-4 mr-2" />
+                Sign out &amp; reconnect GitHub
+              </Button>
+            ) : (
+              <Button onClick={handleCreate} disabled={creating || !repoName} className="w-full" size="lg">
+                {creating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating repository…
+                  </>
+                ) : (
+                  <>
+                    <Github className="h-4 w-4 mr-2" />
+                    Create &amp; push files
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </DialogContent>
