@@ -5,7 +5,9 @@
 `envsetup.dev` replaces manual, error-prone `setup.sh` scripts and inconsistent Docker configs with a powerful, modern CLI and an AI-driven platform.
 
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/fSuP1nkcamn)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.0.1--alpha-orange?style=for-the-badge)](./cli)
+[![npm](https://img.shields.io/npm/v/%40envsetup%2Fcli?style=for-the-badge&label=CLI&color=blue)](https://www.npmjs.com/package/@envsetup/cli)
+
+![envsetup init — generating a Next.js + PostgreSQL environment from the CLI](public/cli-demo.gif)
 
 ## 🌟 Key Features
 
@@ -18,17 +20,18 @@
 
 ## 🛠️ Getting Started with the CLI
 
-The core of `envsetup.dev` is our global CLI. To get started locally:
+The core of `envsetup.dev` is our CLI. No install needed — just run it:
 
-1. **Install globally from NPM**:
-   ```bash
-   npm install -g @envsetup/cli@alpha
-   ```
+```bash
+npx @envsetup/cli init
+```
 
-2. **Initialize your first project**:
-   ```bash
-   envsetup init
-   ```
+Prefer it installed globally?
+
+```bash
+npm install -g @envsetup/cli
+envsetup init
+```
 
 ---
 
@@ -45,9 +48,9 @@ The core of `envsetup.dev` is our global CLI. To get started locally:
 
 - [x] CLI Foundation & Interactive Wizard
 - [x] Presentation & Strategy Deck
-- [ ] **Phase 2**: Expanded Framework Templates (Java, Ruby, Rust)
-- [ ] **Phase 3**: `envsetup doctor` for local system health checks
-- [ ] **Phase 4**: MCP (Model Context Protocol) Server for AI Agent integration
+- [x] **Phase 2**: Expanded Framework Templates (Java, Ruby, Rust, and 20+ more languages)
+- [x] **Phase 3**: `envsetup doctor` for local system health checks
+- [ ] **Phase 4**: MCP (Model Context Protocol) Server for AI Agent integration *(in progress — see `/mcp-server`)*
 
 ---
 
