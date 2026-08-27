@@ -50,7 +50,7 @@ envsetup init
 - [x] Presentation & Strategy Deck
 - [x] **Phase 2**: Expanded Framework Templates (Java, Ruby, Rust, and 20+ more languages)
 - [x] **Phase 3**: `envsetup doctor` for local system health checks
-- [ ] **Phase 4**: MCP (Model Context Protocol) Server for AI Agent integration *(in progress — see `/mcp-server`)*
+- [ ] **Phase 4**: MCP (Model Context Protocol) Server for AI Agent integration *(coming soon)*
 
 ---
 
