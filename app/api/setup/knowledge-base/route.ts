@@ -36,7 +36,18 @@ const knowledge = [
 
 export const maxDuration = 30
 
-export async function GET() {
+// One-time/idempotent seed-and-migrate endpoint - safe to re-run (every
+// write is IF NOT EXISTS / ON CONFLICT), but it was reachable by anyone with
+// the URL and had no auth check at all, letting an anonymous caller trigger
+// DDL and a DELETE against the production DB on demand. Gated behind
+// CRON_SECRET, the same secret already used to protect the actual cron
+// routes, rather than leaving setup/migration endpoints wide open.
+export async function GET(req: Request) {
+  const auth = req.headers.get("authorization")
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS knowledge_base (

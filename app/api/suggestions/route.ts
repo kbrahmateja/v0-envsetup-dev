@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { escapeHtml } from "@/lib/html-escape"
 
 const ADMIN_EMAIL = "kbrahmateja@gmail.com"
 const MAX_MESSAGE_LENGTH = 5000
@@ -72,9 +73,9 @@ export async function POST(request: Request) {
                 </div>
                 <div style="background: #f9fafb; padding: 25px; border-radius: 12px; margin: 25px 0;">
                   <p style="margin: 0 0 15px 0; color: #374151; font-weight: 600;">Message:</p>
-                  <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #e5e7eb; white-space: pre-wrap;">${message.replace(/</g, "&lt;")}</div>
-                  <p style="margin: 15px 0 0 0;"><strong style="color: #6b7280;">From:</strong> <span style="color: #1f2937;">${email || "(anonymous)"}</span></p>
-                  <p style="margin: 5px 0 0 0;"><strong style="color: #6b7280;">Page:</strong> <span style="color: #1f2937;">${pageUrl || "unknown"}</span></p>
+                  <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #e5e7eb; white-space: pre-wrap;">${escapeHtml(message)}</div>
+                  <p style="margin: 15px 0 0 0;"><strong style="color: #6b7280;">From:</strong> <span style="color: #1f2937;">${email ? escapeHtml(email) : "(anonymous)"}</span></p>
+                  <p style="margin: 5px 0 0 0;"><strong style="color: #6b7280;">Page:</strong> <span style="color: #1f2937;">${pageUrl ? escapeHtml(pageUrl) : "unknown"}</span></p>
                   <p style="margin: 5px 0 0 0;"><strong style="color: #6b7280;">Timestamp:</strong> <span style="color: #1f2937;">${timestamp}</span></p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { escapeHtml } from "@/lib/html-escape"
 
 // Every new-subscriber signup sends two emails through Brevo (admin alert +
 // welcome email to whatever address was submitted). With no cap, this
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
                   <div style="background: #f9fafb; padding: 25px; border-radius: 12px; margin: 25px 0;">
                     <p style="margin: 0 0 15px 0; color: #374151; font-weight: 600;">Subscriber Details:</p>
                     <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #e5e7eb;">
-                      <p style="margin: 0 0 10px 0;"><strong style="color: #6b7280;">Email:</strong> <span style="color: #1f2937;">${email}</span></p>
+                      <p style="margin: 0 0 10px 0;"><strong style="color: #6b7280;">Email:</strong> <span style="color: #1f2937;">${escapeHtml(email)}</span></p>
                       <p style="margin: 0;"><strong style="color: #6b7280;">Timestamp:</strong> <span style="color: #1f2937;">${timestamp}</span></p>
                     </div>
                   </div>

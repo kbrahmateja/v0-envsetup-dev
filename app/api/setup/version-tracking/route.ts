@@ -2,7 +2,16 @@ import { sql } from "@/lib/db"
 
 export const maxDuration = 30
 
-export async function GET() {
+// Same reasoning as app/api/setup/knowledge-base/route.ts: idempotent, but
+// was unauthenticated and could trigger DDL + writes against the production
+// DB from anyone who found the URL. Gated behind CRON_SECRET like the real
+// cron routes.
+export async function GET(req: Request) {
+  const auth = req.headers.get("authorization")
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     // Create table if not exists
     await sql`

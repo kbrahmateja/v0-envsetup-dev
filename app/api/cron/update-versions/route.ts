@@ -97,7 +97,11 @@ function isNewer(current: string, latest: string): boolean {
 
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization")
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail closed, not open: the other cron/setup routes reject when
+  // CRON_SECRET is unset, but this one only checked the header when the
+  // secret existed, meaning a misconfigured deploy with no CRON_SECRET set
+  // would leave this route wide open instead of erroring loudly.
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
