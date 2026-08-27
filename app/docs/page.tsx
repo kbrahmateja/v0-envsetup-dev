@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -5,6 +6,16 @@ import { Badge } from "@/components/ui/badge"
 import { languages, frameworks } from "@/lib/stacks"
 import { Wand2, Bot, Terminal, Check, ArrowRight } from "lucide-react"
 import Link from "next/link"
+
+// This page had no page-level metadata at all - it silently fell back to
+// the root layout's generic homepage title/description for every visitor
+// AND every search engine, on a page that's actually about a completely
+// different search intent (supported languages/frameworks reference).
+export const metadata: Metadata = {
+  title: "Docs — Supported Languages & Frameworks",
+  description:
+    "Full list of languages, frameworks, and databases EnvSetup.dev supports, and how to generate a Dockerfile, docker-compose.yml, and .env with the Wizard, AI Assistant, or CLI.",
+}
 
 // Everything on this page is generated from - or cross-checked against -
 // the actual generator code (lib/stacks.ts, components/generator-form.tsx,
