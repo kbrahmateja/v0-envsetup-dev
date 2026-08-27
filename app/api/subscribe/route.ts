@@ -21,13 +21,26 @@ export async function POST(request: Request) {
       )
     }
 
-    const { email } = await request.json()
+    const { email, plan: rawPlan } = await request.json()
 
     if (!email || !email.includes("@")) {
       return NextResponse.json({ error: "Invalid email address" }, { status: 400 })
     }
 
+    // /waitlist?plan=pro (and ?plan=team) has always sent this, but until
+    // now this route ignored it entirely - every "Start Free Trial" click
+    // landed in the same subscribers table as a plain newsletter signup,
+    // with zero record of which plan someone actually wanted. That's the
+    // one signal that would say whether building Pro/Team is worth it, and
+    // it was being thrown away on every submission.
+    const plan = rawPlan === "pro" || rawPlan === "team" ? rawPlan : null
+
     let isNewSubscriber = false
+
+    const insertSubscriber = () => sql`
+      INSERT INTO subscribers (email, subscribed_at, status, plan)
+      VALUES (${email}, NOW(), 'active', ${plan})
+    `
 
     try {
       const existingSubscriber = await sql`
@@ -35,11 +48,23 @@ export async function POST(request: Request) {
       `
 
       if (existingSubscriber.length === 0) {
-        await sql`
-          INSERT INTO subscribers (email, subscribed_at, status)
-          VALUES (${email}, NOW(), 'active')
-        `
+        try {
+          await insertSubscriber()
+        } catch {
+          // Most likely cause: the `plan` column doesn't exist yet on a
+          // deploy from before this change. Add it once, then retry -
+          // same self-heal pattern used elsewhere in this codebase (see
+          // app/history/page.tsx) rather than requiring a manual migration.
+          await sql`ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS plan VARCHAR(50)`
+          await insertSubscriber()
+        }
         isNewSubscriber = true
+      } else if (plan) {
+        // Someone who already subscribed (e.g. to the newsletter) came back
+        // and clicked a paid plan's "Start Free Trial" - that's a stronger
+        // signal than their original signup, so record it rather than
+        // silently keeping only the first thing they ever did.
+        await sql`UPDATE subscribers SET plan = ${plan} WHERE email = ${email}`.catch(() => {})
       }
     } catch (dbError) {
       console.error("Database error details:", {

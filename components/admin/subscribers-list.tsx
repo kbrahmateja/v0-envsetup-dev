@@ -6,14 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export async function SubscribersList() {
 
-  let subscribers: { id: number; email: string; status: string; subscribed_at: string }[] = []
+  let subscribers: { id: number; email: string; status: string; subscribed_at: string; plan: string | null }[] = []
 
   try {
     subscribers = (await sql`
       SELECT * FROM subscribers
       ORDER BY subscribed_at DESC
       LIMIT 100
-    `) as { id: number; email: string; status: string; subscribed_at: string }[]
+    `) as { id: number; email: string; status: string; subscribed_at: string; plan: string | null }[]
   } catch (error) {
     console.error("Error fetching subscribers list:", error)
   }
@@ -32,6 +32,7 @@ export async function SubscribersList() {
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Plan interest</TableHead>
                 <TableHead>Subscribed</TableHead>
               </TableRow>
             </TableHeader>
@@ -43,6 +44,15 @@ export async function SubscribersList() {
                     <Badge variant={subscriber.status === "active" ? "default" : "secondary"}>
                       {subscriber.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {subscriber.plan ? (
+                      <Badge variant="outline" className="capitalize">
+                        {subscriber.plan}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDistanceToNow(new Date(subscriber.subscribed_at), { addSuffix: true })}
