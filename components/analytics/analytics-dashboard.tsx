@@ -9,6 +9,7 @@ import VisitorChart from "./visitor-chart"
 import GeographicDistribution from "./geographic-distribution"
 import DeviceStats from "./device-stats"
 import ReferralSources from "./referral-sources"
+import AffiliateClicks from "./affiliate-clicks"
 import DateRangePicker from "./date-range-picker"
 
 interface AnalyticsResponse {
@@ -26,6 +27,7 @@ interface AnalyticsResponse {
   geographicDistribution: { country: string; visitors: number; percentage: number }[]
   deviceStats: { device: string; visitors: number; percentage: number; color: string }[]
   referralSources: { source: string; visitors: number; percentage: number }[]
+  affiliateClicks: { platform: string; clicks: number; percentage: number }[]
 }
 
 function defaultRange(): DateRange {
@@ -126,10 +128,13 @@ export default function AnalyticsDashboard() {
             <ReferralSources data={data.referralSources} />
           </div>
 
-          <NotYetTrackedCard
-            title="User Engagement"
-            description="Average time on page and bounce rates"
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <AffiliateClicks data={data.affiliateClicks} />
+            <NotYetTrackedCard
+              title="User Engagement"
+              description="Average time on page and bounce rates"
+            />
+          </div>
         </>
       ) : null}
     </div>

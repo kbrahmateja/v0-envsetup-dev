@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import { AFFILIATE_LINKS } from "@/lib/affiliate-links"
 
 // ─────────────────────────────────────────
 // Real analytics for the admin dashboard, built from the `visitors` table
@@ -29,6 +30,10 @@ interface ReferrerRow {
 }
 interface UaRow {
   user_agent: string | null
+  count: number
+}
+interface AffiliateRow {
+  platform: string
   count: number
 }
 
@@ -89,7 +94,7 @@ export async function GET(req: NextRequest) {
     const prevFromIso = prevFrom.toISOString()
     const prevToIso = prevTo.toISOString()
 
-    const [currentAgg, previousAgg, dailyRows, geoRows, referrerRows, uaRows] = await Promise.all([
+    const [currentAgg, previousAgg, dailyRows, geoRows, referrerRows, uaRows, affiliateRows] = await Promise.all([
       sql`
         SELECT COUNT(*)::int AS page_views, COUNT(DISTINCT ip_address)::int AS visitors
         FROM visitors
@@ -126,6 +131,19 @@ export async function GET(req: NextRequest) {
         WHERE visited_at BETWEEN ${fromIso}::timestamptz AND ${toIso}::timestamptz
         GROUP BY user_agent
       ` as unknown as Promise<UaRow[]>,
+      // affiliate_clicks is only ever created lazily by the tracking route
+      // on its first real click - on a fresh deploy that hasn't happened
+      // yet, so a missing-table error here means "zero clicks so far", not
+      // a real failure.
+      (
+        sql`
+          SELECT platform, COUNT(*)::int AS count
+          FROM affiliate_clicks
+          WHERE clicked_at BETWEEN ${fromIso}::timestamptz AND ${toIso}::timestamptz
+          GROUP BY platform
+          ORDER BY count DESC
+        ` as unknown as Promise<AffiliateRow[]>
+      ).catch(() => [] as AffiliateRow[]),
     ])
 
     const curr = currentAgg[0] ?? { page_views: 0, visitors: 0 }
@@ -198,12 +216,23 @@ export async function GET(req: NextRequest) {
         percentage: Math.round((count / totalReferrerCount) * 100),
       }))
 
+    const affiliatePlatformNames: Record<string, string> = Object.fromEntries(
+      AFFILIATE_LINKS.map((link) => [link.id, link.name]),
+    )
+    const totalAffiliateClicks = affiliateRows.reduce((sum, r) => sum + r.count, 0) || 1
+    const affiliateClicks = affiliateRows.map((r) => ({
+      platform: affiliatePlatformNames[r.platform] ?? r.platform,
+      clicks: r.count,
+      percentage: Math.round((r.count / totalAffiliateClicks) * 100),
+    }))
+
     return NextResponse.json({
       overview,
       visitorTrends,
       geographicDistribution,
       deviceStats,
       referralSources,
+      affiliateClicks,
     })
   } catch (error) {
     console.error("Error building admin analytics:", error)

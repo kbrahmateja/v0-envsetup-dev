@@ -11,6 +11,7 @@ import { Suspense } from "react"
 import type { EnvironmentConfig } from "@/lib/deployment-config"
 import { DeploymentDialog } from "@/components/deployment-dialog"
 import { GithubPushDialog } from "@/components/github-push-dialog"
+import { AffiliateLinksCard } from "@/components/affiliate-links-card"
 
 function ResultsContent() {
   const searchParams = useSearchParams()
@@ -144,6 +145,10 @@ function ResultsContent() {
               <Terminal className="h-4 w-4" />
               Copy CLI Command
             </Button>
+          </div>
+
+          <div className="mt-8">
+            <AffiliateLinksCard />
           </div>
         </div>
       </div>
